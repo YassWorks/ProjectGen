@@ -12,6 +12,8 @@ from tools import (
     delete_file
 )
 
+MODEL_NAME = "qwen-3-235b-a22b"
+
 def config():
     """Load configuration and initialize the chat agent."""
     
@@ -25,7 +27,7 @@ def config():
         sys.exit(1)
 
     llm = ChatCerebras(  
-        model="llama-4-scout-17b-16e-instruct",  
+        model=MODEL_NAME,  
         temperature=0,  
         max_tokens=10000,  
         timeout=None,  
