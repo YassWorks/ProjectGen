@@ -9,7 +9,9 @@ from tools import (
     create_wd,
     create_file,
     modify_file,
-    delete_file
+    delete_file,
+    read_file,
+    list_directory,
 )
 
 MODEL_NAME = "qwen-3-235b-a22b"
@@ -37,7 +39,7 @@ def config():
 
     memory = MemorySaver()
 
-    tools = [create_wd, create_file, modify_file, delete_file]
+    tools = [create_wd, create_file, modify_file, delete_file, read_file, list_directory]
 
     with open("system_prompt.txt", "r") as file:
         system_prompt = file.read().strip()
