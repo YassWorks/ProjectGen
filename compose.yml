@@ -1,0 +1,8 @@
+services:
+  projectgen:
+    build:
+      context: .
+    env_file:
+      - app/src/.env
+    environment:
+      - CEREBRAS_API_KEY=${CEREBRAS_API_KEY}

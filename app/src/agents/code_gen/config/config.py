@@ -5,7 +5,7 @@ from langchain_cerebras import ChatCerebras
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.prebuilt import create_react_agent
 from langchain_core.prompts import ChatPromptTemplate
-from tools import (
+from .tools import (
     create_wd,
     create_file,
     modify_file,
@@ -14,9 +14,7 @@ from tools import (
     list_directory,
 )
 
-MODEL_NAME = "qwen-3-235b-a22b"
-
-def config():
+def get_agent(model_name):
     """Load configuration and initialize the chat agent."""
     
     load_dotenv()
@@ -29,9 +27,8 @@ def config():
         sys.exit(1)
 
     llm = ChatCerebras(  
-        model=MODEL_NAME,  
-        temperature=0,  
-        max_tokens=10000,  
+        model=model_name,  
+        temperature=0,    
         timeout=None,  
         max_retries=2,  
         api_key=API_KEY,
@@ -41,12 +38,13 @@ def config():
 
     tools = [create_wd, create_file, modify_file, delete_file, read_file, list_directory]
 
-    with open("system_prompt.txt", "r") as file:
+    dir = os.path.dirname(os.path.abspath(__file__))
+    with open(os.path.join(dir, "system_prompt.txt"), "r") as file:
         system_prompt = file.read().strip()
-    
+        
     prompt = ChatPromptTemplate.from_messages([
         ("system", system_prompt),
-        ("placeholder", "{messages}"),
+        ("user", "{messages}"),
     ])
 
     agent = create_react_agent(llm, tools, checkpointer=memory, prompt=prompt)
