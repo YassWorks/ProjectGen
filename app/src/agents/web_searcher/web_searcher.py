@@ -3,7 +3,7 @@ from app.utils.ascii_art import ASCII_ART
 import uuid
 
 
-class CodeGenAgent:
+class WebSearcherAgent:
 
     def __init__(self, model_name, api_key):
 
@@ -27,7 +27,7 @@ class CodeGenAgent:
         print("Type your message and press Enter to chat with the AI.")
         print("Type 'quit', 'exit', or 'q' to end the conversation.")
         print("Type 'clear' to clear the conversation history.")
-        print("Current agent: Code Generation")
+        print("Current agent: Web Searcher")
         print("-" * 50)
 
         configuration = {
