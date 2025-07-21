@@ -51,6 +51,7 @@ class CodeGenAgent:
                     print("=" * 50)
                 except Exception:
                     pass
+            print(response["messages"][-1].content)
 
             return
 

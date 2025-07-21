@@ -4,7 +4,7 @@ from langchain_cerebras import ChatCerebras
 from langgraph.prebuilt import create_react_agent
 from langgraph.graph.state import CompiledStateGraph
 from app.src.agents.web_searcher.config.tools import (
-    search_web,
+    search
 )
 
 
@@ -22,7 +22,7 @@ def get_agent(
     )
 
     tools = [
-        search_web,
+        search,
     ]
 
     dir = os.path.dirname(os.path.abspath(__file__))
