@@ -1,4 +1,4 @@
-from config.config import get_agent
+from app.src.agents.code_gen.config.config import get_agent
 import uuid
 
 
@@ -16,12 +16,23 @@ ASCII_ART = r"""
 
 class CodeGenAgent:
 
-    def __init__(self, model_name):
+    def __init__(self, model_name, api_key):
 
-        self.agent = get_agent(model_name=model_name)
+        self.model_name = model_name
+        self.api_key = api_key
+        self.agent = get_agent(model_name=model_name, api_key=api_key, temp_chat=False)
 
-    def start_chat(self, message=None):
+    def start_chat(self, message: str | None = None):
+        """
+        Start an isolated chat session with the code generation agent.
+        During this session, you do not have access to the other agents.
+        Arguments:
+            message (str | None): Optional message for single-query sessions.
+        """
 
+        tmp_chat_agent = get_agent(
+            model_name=self.model_name, api_key=self.api_key, temp_chat=True
+        )
         print(ASCII_ART)
         print("Type your message and press Enter to chat with the AI.")
         print("Type 'quit', 'exit', or 'q' to end the conversation.")
@@ -34,19 +45,22 @@ class CodeGenAgent:
         }
 
         if message:
+
             print("\nYou:\n")
             print(message)
             print("\nAI:\n")
-            response = self.agent.invoke({"messages": message}, configuration)
+
+            response = tmp_chat_agent.invoke({"messages": message}, configuration)
             for msg in response["messages"]:
                 try:
-                    print(f"=== TOOL CALLED === {msg.tool_calls[0]['name']}")
+                    print(f"\n=== TOOL CALLED === {msg.tool_calls[0]['name']}\n")
                     args = msg.tool_calls[0]["args"]
                     for k, v in args.items():
-                        print(f"------------ Argument: {k}: \n{v}")
+                        print(f"------------ ARGUMENT: {k} \n{v}\n")
                     print("=" * 50)
                 except Exception:
                     pass
+
             return
 
         while True:
@@ -71,11 +85,10 @@ class CodeGenAgent:
                 response = self.agent.invoke({"messages": user_input}, configuration)
                 for msg in response["messages"]:
                     try:
-                        print(f"Called tool: {msg.tool_calls[0]['name']}")
+                        print(f"\n=== TOOL CALLED === {msg.tool_calls[0]['name']}\n")
                         args = msg.tool_calls[0]["args"]
                         for k, v in args.items():
-                            print(f"{k}: {v}")
-                            print("-" * 50)
+                            print(f"------------ ARGUMENT: {k} \n{v}\n")
                         print("=" * 50)
                     except Exception:
                         pass

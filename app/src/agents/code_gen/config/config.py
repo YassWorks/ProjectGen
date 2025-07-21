@@ -1,11 +1,9 @@
 import os
-import sys
-from dotenv import load_dotenv
-from langchain_cerebras import ChatCerebras
 from langgraph.checkpoint.memory import MemorySaver
+from langchain_cerebras import ChatCerebras
 from langgraph.prebuilt import create_react_agent
-from langchain_core.prompts import ChatPromptTemplate
-from .tools import (
+from langgraph.graph.state import CompiledStateGraph
+from app.src.agents.code_gen.config.tools import (
     create_wd,
     create_file,
     modify_file,
@@ -14,39 +12,41 @@ from .tools import (
     list_directory,
 )
 
-def get_agent(model_name):
-    """Load configuration and initialize the chat agent."""
-    
-    load_dotenv()
 
-    API_KEY = os.getenv("CEREBRAS_API_KEY")
+def get_agent(
+    model_name: str, api_key: str, temp_chat: bool = False
+) -> CompiledStateGraph:
+    """Load configuration and initialize the code generator agent."""
 
-    if not API_KEY:
-        print("Error: CEREBRAS_API_KEY not found in environment variables.")
-        print("Please create a .env file with your Cerebras API key.")
-        sys.exit(1)
-
-    llm = ChatCerebras(  
-        model=model_name,  
-        temperature=0,    
-        timeout=None,  
-        max_retries=2,  
-        api_key=API_KEY,
+    llm = ChatCerebras(
+        model=model_name,
+        temperature=0,
+        timeout=None,
+        max_retries=5,
+        api_key=api_key,
     )
 
-    memory = MemorySaver()
-
-    tools = [create_wd, create_file, modify_file, delete_file, read_file, list_directory]
+    tools = [
+        create_wd,
+        create_file,
+        modify_file,
+        delete_file,
+        read_file,
+        list_directory,
+    ]
 
     dir = os.path.dirname(os.path.abspath(__file__))
     with open(os.path.join(dir, "system_prompt.txt"), "r") as file:
         system_prompt = file.read().strip()
-        
-    prompt = ChatPromptTemplate.from_messages([
-        ("system", system_prompt),
-        ("user", "{messages}"),
-    ])
 
-    agent = create_react_agent(llm, tools, checkpointer=memory, prompt=prompt)
-    
+    mem = MemorySaver() if temp_chat else None
+
+    agent = create_react_agent(
+        model=llm,
+        tools=tools,
+        prompt=system_prompt,
+        name="code_generator",
+        checkpointer=mem,
+    )
+
     return agent
