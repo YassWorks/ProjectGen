@@ -25,7 +25,7 @@ ENDPOINT = "https://customsearch.googleapis.com/customsearch/v1"
 TIMEOUT  = 10  # seconds
 
 
-# @tool
+@tool
 def search(query: str) -> str:
     """Search the web for the given query and return a summary of the results."""
     

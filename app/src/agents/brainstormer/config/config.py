@@ -3,21 +3,15 @@ from langgraph.checkpoint.memory import MemorySaver
 from langchain_cerebras import ChatCerebras
 from langgraph.prebuilt import create_react_agent
 from langgraph.graph.state import CompiledStateGraph
-from app.src.agents.web_searcher.config.tools import search
-from app.src.agents.code_gen.config.tools import (
-    create_wd,
-    create_file,
-    modify_file,
-    delete_file,
-    read_file,
-    list_directory,
+from app.src.agents.brainstormer.config.tools import (
+    get_features_ideas
 )
 
 
 def get_agent(
     model_name: str, api_key: str, temp_chat: bool = False
 ) -> CompiledStateGraph:
-    """Load configuration and initialize the code generator agent."""
+    """Load configuration and initialize the web searcher agent."""
 
     llm = ChatCerebras(
         model=model_name,
@@ -28,13 +22,7 @@ def get_agent(
     )
 
     tools = [
-        create_wd,
-        create_file,
-        modify_file,
-        delete_file,
-        read_file,
-        list_directory,
-        search,
+        get_features_ideas,
     ]
 
     dir = os.path.dirname(os.path.abspath(__file__))
@@ -47,7 +35,7 @@ def get_agent(
         model=llm,
         tools=tools,
         prompt=system_prompt,
-        name="code_generator",
+        name="brainstormer",
         checkpointer=mem,
     )
 
