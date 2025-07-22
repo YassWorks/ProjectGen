@@ -3,7 +3,6 @@ from langgraph.checkpoint.memory import MemorySaver
 from langchain_cerebras import ChatCerebras
 from langgraph.prebuilt import create_react_agent
 from langgraph.graph.state import CompiledStateGraph
-from app.src.agents.web_searcher.config.tools import search
 from app.src.agents.code_gen.config.tools import (
     create_wd,
     create_file,
@@ -34,7 +33,6 @@ def get_agent(
         delete_file,
         read_file,
         list_directory,
-        search,
     ]
 
     dir = os.path.dirname(os.path.abspath(__file__))

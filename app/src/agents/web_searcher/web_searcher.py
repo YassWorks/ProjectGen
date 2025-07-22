@@ -1,4 +1,4 @@
-from app.src.agents.code_gen.config.config import get_agent
+from app.src.agents.web_searcher.config.config import get_agent
 from app.utils.ascii_art import ASCII_ART
 import uuid
 
@@ -51,6 +51,7 @@ class WebSearcherAgent:
                     print("=" * 50)
                 except Exception:
                     pass
+            print(response["messages"][-1].content)
 
             return
 
