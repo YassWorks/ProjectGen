@@ -2,7 +2,6 @@ from langchain_core.tools import tool
 from typing import List, Dict
 from bs4 import BeautifulSoup
 import requests
-from langchain_cerebras import ChatCerebras
 from dotenv import load_dotenv
 from pathlib import Path
 import os
@@ -13,62 +12,31 @@ ENV_PATH = ROOT_DIR / ".env"
 load_dotenv(dotenv_path=ENV_PATH)
 
 
-def get_config():
-
-    llm_api_key = os.getenv("CEREBRAS_API_KEY")
-    ggl_api_key = os.getenv("GOOGLE_SEARCH_API_KEY")
-    cx_id = os.getenv("SEARCH_ENGINE_ID")
-    return llm_api_key, ggl_api_key, cx_id
+GGL_API_KEY = os.getenv("GOOGLE_SEARCH_API_KEY")
+CX_ID = os.getenv("SEARCH_ENGINE_ID")
 
 
 ENDPOINT = "https://customsearch.googleapis.com/customsearch/v1"
-TIMEOUT  = 10  # seconds
+TIMEOUT = 10  # seconds
 
 
-@tool
-def search(query: str) -> str:
-    """Search the web for the given query and return a summary of the results."""
-    
-    llm_api_key, ggl_api_key, cx_id = get_config()
-    summarizer = ChatCerebras(
-        model="llama3.1-8b",
-        temperature=0,
-        timeout=None,
-        max_retries=5,
-        api_key=llm_api_key,
-    )
-    content = search_and_scrape(
-        query=query,
-        api_key=ggl_api_key,
-        cx_id=cx_id,
-        n=5
-    )
-    summary = summarizer.invoke(
-        f"Summarize the following text as much as possible while still answering the question: {query}\n\n{content}"
-    )
-    
-    return summary.content
-
-
-def google_search(query: str, api_key: str, cx_id: str, n: int) -> List[Dict[str, str]]:
+def google_search(query: str, n: int = 5) -> List[Dict[str, str]]:
     """
     Return up to `n` Google results as a list of dicts
     (title, link, snippet).  Raises requests.HTTPError on failure.
     """
-    
-    if not api_key or not cx_id:
-        raise RuntimeError("Set GOOGLE_SEARCH_API_KEY and SEARCH_ENGINE_ID env vars.")
-    if n < 1 or n > 100:
-        raise ValueError("n must be 1–100 (API hard limit).")
+
+    if not GGL_API_KEY or not CX_ID:
+        raise ValueError("Google API key or Search Engine ID not set in .env")
 
     results, start = [], 1
     while len(results) < n:
         batch = min(10, n - len(results))
         payload = {
-            "key":   api_key,
-            "cx":    cx_id,
-            "q":     query,
-            "num":   batch,
+            "key": GGL_API_KEY,
+            "cx": CX_ID,
+            "q": query,
+            "num": batch,
             "start": start,
         }
         resp = requests.get(ENDPOINT, params=payload, timeout=TIMEOUT)
@@ -77,9 +45,10 @@ def google_search(query: str, api_key: str, cx_id: str, n: int) -> List[Dict[str
 
         for item in data.get("items", []):
             results.append(
-                {"title": item["title"],
-                 "link":  item["link"],
-                 "snippet": item.get("snippet", "")}
+                {
+                    "title": item["title"],
+                    "link": item["link"],
+                }
             )
             if len(results) == n:
                 break
@@ -93,25 +62,40 @@ def google_search(query: str, api_key: str, cx_id: str, n: int) -> List[Dict[str
 
 
 def fetch_page_text(url: str) -> str:
-    
+
     try:
         html = requests.get(url, timeout=10).text
         soup = BeautifulSoup(html, "html.parser")
         # kill script/style
-        for s in soup(["script", "style", "noscript"]): s.decompose()
+        for s in soup(["script", "style", "noscript"]):
+            s.decompose()
         text = soup.get_text(separator=" ")
-        res = ("\n".join(line.strip() for line in text.splitlines() if line.strip()))[:1000]
+        res = ("\n".join(line.strip() for line in text.splitlines() if line.strip()))[
+            :1000
+        ]
         return res
 
     except Exception as e:
         return f"[Error scraping {url}]: {e}"
 
 
-def search_and_scrape(query: str, api_key: str, cx_id: str, n: int) -> str:
+@tool
+def search_and_scrape(query: str) -> str:
+    """
+    Search Google for a query and get the top results structured as "title" and "content".
+    This tool is used to extract information from all sources across the web.
+    Args:
+        query (str): The search query to use.
+    """
 
-    results = google_search(query, api_key, cx_id, n)
+    results = google_search(query, 5)
     for r in results:
         r["full_text"] = fetch_page_text(r["link"])
-    ret = "\n\n".join(r["full_text"] for r in results)
-    
-    return ret
+
+    results = "This answer is possibly incomplete. Consider refining search terms if needed.\n\n"
+    # results has "title" and "full_text" keys. Let's structure it nicely for the agent:
+    for r in results:
+        results += f"Title: {r['title']}\n"
+        results += f"Content: {r['full_text']}\n\n"
+
+    return results
