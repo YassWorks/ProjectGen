@@ -173,7 +173,7 @@ def suggest_next_brainstorm_command() -> str:
 
 
 @tool
-def help() -> str:
+def tools_help() -> str:
     """
     Lists all available brainstorm commands and what each one does.
     """

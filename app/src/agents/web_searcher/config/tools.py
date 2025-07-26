@@ -88,14 +88,14 @@ def search_and_scrape(query: str) -> str:
         query (str): The search query to use.
     """
 
-    results = google_search(query, 5)
-    for r in results:
+    search_results = google_search(query, 5)
+    for r in search_results:
         r["full_text"] = fetch_page_text(r["link"])
 
-    results = "This answer is possibly incomplete. Consider refining search terms if needed.\n\n"
-    # results has "title" and "full_text" keys. Let's structure it nicely for the agent:
-    for r in results:
-        results += f"Title: {r['title']}\n"
-        results += f"Content: {r['full_text']}\n\n"
+    formatted_results = "This answer is possibly incomplete. Consider refining search terms if needed.\n\n"
+    # search_results has "title" and "full_text" keys. Let's structure it nicely for the agent:
+    for r in search_results:
+        formatted_results += f"Title: {r['title']}\n"
+        formatted_results += f"Content: {r['full_text']}\n\n"
 
-    return results
+    return formatted_results

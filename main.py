@@ -1,4 +1,9 @@
 from app.src.orchestration.code_generation import orchestrated_codegen
+from dotenv import load_dotenv
+import os
+
+# Load environment variables
+load_dotenv()
 
 prompt = """
 # FastAPI + React: Morning News Email Newsletter
@@ -61,4 +66,11 @@ morning_news/
 - Admin dashboard with stats
 """
 
-orchestrated_codegen(prompt)
+# Get required parameters from environment
+llm_api_key = os.getenv("CEREBRAS_API_KEY")
+model_name = "qwen-3-235b-a22b"
+
+if not llm_api_key:
+    raise ValueError("CEREBRAS_API_KEY environment variable is required")
+
+orchestrated_codegen(prompt, llm_api_key, model_name)

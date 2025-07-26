@@ -20,7 +20,8 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 # no non-privileged user cuz i wanna check stuff out inside the container
 
 COPY app/ ./app/
+COPY main.py ./
 
 EXPOSE 8000
 
-CMD ["sudo", "python", "main.py"]
+CMD ["python", "main.py"]

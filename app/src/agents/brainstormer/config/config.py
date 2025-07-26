@@ -4,7 +4,13 @@ from langchain_cerebras import ChatCerebras
 from langgraph.prebuilt import create_react_agent
 from langgraph.graph.state import CompiledStateGraph
 from app.src.agents.brainstormer.config.tools import (
-    get_features_ideas
+    extract_main_idea,
+    extract_tech_details,
+    get_features_ideas,
+    analyze_target_audience,
+    find_potential_pitfalls,
+    suggest_next_brainstorm_command,
+    tools_help,
 )
 
 
@@ -22,7 +28,13 @@ def get_agent(
     )
 
     tools = [
+        extract_main_idea,
+        extract_tech_details,
         get_features_ideas,
+        analyze_target_audience,
+        find_potential_pitfalls,
+        suggest_next_brainstorm_command,
+        tools_help,
     ]
 
     dir = os.path.dirname(os.path.abspath(__file__))

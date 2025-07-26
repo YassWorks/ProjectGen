@@ -55,7 +55,7 @@ def orchestrated_codegen(prompt: str, llm_api_key: str, model_name: str) -> None
     graph.add_node("assistant", tool_node)
 
     graph.add_edge(START, "code_gen")
-    graph.add_conditional_edges("code_gen", tools_condition, {"assistant", END})
+    graph.add_conditional_edges("code_gen", tools_condition, {"assistant": "assistant", END: END})
     graph.add_edge("assistant", "code_gen")
 
     g = graph.compile()
