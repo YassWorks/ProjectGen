@@ -11,12 +11,19 @@ from langchain_core.messages import HumanMessage
 
 
 def orchestrated_codegen(prompt: str, llm_api_key: str, model_name: str) -> None:
+    """
+    Orchestrates the code generation process by coordinating multiple agents.
+    Available agents:
+    - **BrainstormerAgent**: Analyzes the project description and extracts key ideas.
+    - **CodeGenAgent**: Generates code based on the provided prompt.
+    - **WebSearcherAgent**: Searches the web for additional information.
+    """
 
     code_generator = CodeGenAgent(model_name=model_name, api_key=llm_api_key).agent
     web_searcher = WebSearcherAgent(model_name=model_name, api_key=llm_api_key).agent
     brainstormer = BrainstormerAgent(model_name=model_name, api_key=llm_api_key).agent
 
-    prompt_to_brainstormer = r"""
+    prompt_to_brainstormer = f"""
     Analyze the project description and extract key ideas, technical details, and potential features.
     The project description is as follows:
     {prompt}
