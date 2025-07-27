@@ -28,9 +28,14 @@ def orchestrated_codegen(prompt: str, llm_api_key: str, model_name: str) -> None
     The project description is as follows:
     {prompt}
     """
+
+    config = {"recursion_limit": 40}
+
     prompt_to_brainstormer = textwrap.dedent(prompt_to_brainstormer).strip()
-    brainstormer_report = brainstormer.invoke({"messages": prompt_to_brainstormer})
-    
+    brainstormer_report = brainstormer.invoke(
+        {"messages": prompt_to_brainstormer}, config
+    )
+
     prompt += "\n\n" + brainstormer_report["messages"][-1].content
 
     class State(TypedDict):
@@ -45,7 +50,7 @@ def orchestrated_codegen(prompt: str, llm_api_key: str, model_name: str) -> None
     @tool
     def call_searcher(query: str) -> str:
         """
-        Ask the assistant to get reliable info from the web. 
+        Ask the assistant to get reliable info from the web.
         The assistant can choose the best queries for your issue to search for.
         You just need to provide a description of the problem you are facing.
         You can also provide a direct query for the assistant to use if you know it.
@@ -62,13 +67,17 @@ def orchestrated_codegen(prompt: str, llm_api_key: str, model_name: str) -> None
     graph.add_node("assistant", tool_node)
 
     graph.add_edge(START, "code_gen")
-    graph.add_conditional_edges("code_gen", tools_condition, {"assistant": "assistant", END: END})
+    graph.add_conditional_edges(
+        "code_gen", tools_condition, {"assistant": "assistant", END: END}
+    )
     graph.add_edge("assistant", "code_gen")
 
     g = graph.compile()
     print(f"Graph compiled: {g}")
 
-    response = g.invoke({"messages": [HumanMessage(content=prompt)]})
+    g_config = {"recursion_limit": 100}
+
+    response = g.invoke({"messages": [HumanMessage(content=prompt)]}, g_config)
     for msg in response["messages"]:
         try:
             print(f"\n=== TOOL CALLED === {msg.tool_calls[0]['name']}\n")
