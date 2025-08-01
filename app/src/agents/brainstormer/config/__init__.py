@@ -5,7 +5,6 @@ from app.src.agents.brainstormer.config.tools import (
     get_features_ideas,
     analyze_target_audience,
     find_potential_pitfalls,
-    suggest_next_brainstorm_command,
     tools_help
 )
 
@@ -16,6 +15,5 @@ __all__ = [
     "get_features_ideas",
     "analyze_target_audience",
     "find_potential_pitfalls",
-    "suggest_next_brainstorm_command",
     "tools_help"
 ]
