@@ -153,26 +153,6 @@ def find_potential_pitfalls() -> str:
 
 
 @tool
-def suggest_next_brainstorm_command() -> str:
-    """
-    Prompts the agent to decide the next logical brainstorm step.
-    """
-    prompt = """
-    Based on what you currently know about the project and what you've already extracted, suggest the next brainstorm command to use.
-
-    INSTRUCTIONS:
-    - Review what’s been answered so far (main idea, tech details, etc.)
-    - Determine which command would add the most value next
-    - Justify your suggestion in 1–2 sentences
-
-    OUTPUT FORMAT:
-    Suggested Command: /extract_tech_details
-    Reason: The technical implementation has not yet been explored.
-    """
-    return textwrap.dedent(prompt).strip()
-
-
-@tool
 def tools_help() -> str:
     """
     Lists all available brainstorm commands and what each one does.

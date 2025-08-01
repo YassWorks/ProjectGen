@@ -9,7 +9,6 @@ from app.src.agents.brainstormer.config.tools import (
     get_features_ideas,
     analyze_target_audience,
     find_potential_pitfalls,
-    suggest_next_brainstorm_command,
     tools_help,
 )
 
@@ -27,17 +26,14 @@ def get_agent(
         api_key=api_key,
     )
 
-    # tools = [
-    #     extract_main_idea,
-    #     extract_tech_details,
-    #     get_features_ideas,
-    #     analyze_target_audience,
-    #     find_potential_pitfalls,
-    #     suggest_next_brainstorm_command,
-    #     tools_help,
-    # ]
-    
-    tools = []
+    tools = [
+        extract_main_idea,
+        extract_tech_details,
+        get_features_ideas,
+        analyze_target_audience,
+        find_potential_pitfalls,
+        tools_help,
+    ]
 
     dir = os.path.dirname(os.path.abspath(__file__))
     with open(os.path.join(dir, "system_prompt.txt"), "r") as file:

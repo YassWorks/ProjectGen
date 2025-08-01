@@ -1,7 +1,8 @@
-python-dotenv==1.0.0
-langchain-cerebras==0.2.1
-langgraph==0.2.55
-langchain-core==0.3.29
-beautifulsoup4==4.12.2
-requests==2.31.0
-google-api-python-client==2.176.0
+python-dotenv
+langchain-cerebras
+langgraph
+langchain-core
+beautifulsoup4
+requests
+google-api-python-client
+rich
