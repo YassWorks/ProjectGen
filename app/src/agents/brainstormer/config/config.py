@@ -10,7 +10,7 @@ from app.src.agents.brainstormer.config.tools import (
 import os
 
 
-def get_agent(model_name: str, api_key: str, system_prompt: str = None, temprature: float = 0):
+def get_agent(model_name: str, api_key: str, system_prompt: str = None, temperature: float = 0):
     
     tools = [
         extract_main_idea,
@@ -31,5 +31,5 @@ def get_agent(model_name: str, api_key: str, system_prompt: str = None, tempratu
         api_key=api_key,
         tools=tools,
         system_prompt=system_prompt,
-        temperature=temprature,
+        temperature=temperature,
     )

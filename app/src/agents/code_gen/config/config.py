@@ -3,7 +3,7 @@ from app.src.agents.code_gen.config.tools import ALL_TOOLS
 import os
 
 
-def get_agent(model_name: str, api_key: str, system_prompt: str = None, temprature: float = 0):
+def get_agent(model_name: str, api_key: str, system_prompt: str = None, temperature: float = 0):
     
     if system_prompt is None:
         dir = os.path.dirname(os.path.abspath(__file__))
@@ -15,5 +15,5 @@ def get_agent(model_name: str, api_key: str, system_prompt: str = None, tempratu
         api_key=api_key,
         tools=ALL_TOOLS,
         system_prompt=system_prompt,
-        temperature=temprature,
+        temperature=temperature,
     )

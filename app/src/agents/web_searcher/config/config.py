@@ -5,7 +5,7 @@ from app.src.agents.web_searcher.config.tools import (
 import os
 
 
-def get_agent(model_name: str, api_key: str, system_prompt: str = None, temprature: float = 0):
+def get_agent(model_name: str, api_key: str, system_prompt: str = None, temperature: float = 0):
     
     tools = [
         search_and_scrape,
@@ -21,5 +21,5 @@ def get_agent(model_name: str, api_key: str, system_prompt: str = None, tempratu
         api_key=api_key,
         tools=tools,
         system_prompt=system_prompt,
-        temperature=temprature,
+        temperature=temperature,
     )

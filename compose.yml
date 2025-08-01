@@ -4,5 +4,5 @@ services:
       context: .
     env_file:
       - .env
-    environment:
-      - CEREBRAS_API_KEY=${CEREBRAS_API_KEY}
+    stdin_open: true
+    tty: true
