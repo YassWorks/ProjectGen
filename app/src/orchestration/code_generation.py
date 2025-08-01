@@ -1,13 +1,13 @@
-import textwrap
-from app.src.agents.code_gen.code_gen import CodeGenAgent
 from app.src.agents.brainstormer.brainstormer import BrainstormerAgent
 from app.src.agents.web_searcher.web_searcher import WebSearcherAgent
+from app.src.agents.code_gen.code_gen import CodeGenAgent
 from langgraph.prebuilt import ToolNode, tools_condition
+from langgraph.graph import StateGraph, START, END
+from langchain_core.messages import HumanMessage
 from langgraph.graph.message import add_messages
 from typing import TypedDict, Annotated
-from langgraph.graph import StateGraph, START, END
 from langchain_core.tools import tool
-from langchain_core.messages import HumanMessage
+import textwrap
 
 
 def orchestrated_codegen(prompt: str, llm_api_key: str, model_name: str) -> None:
@@ -29,7 +29,7 @@ def orchestrated_codegen(prompt: str, llm_api_key: str, model_name: str) -> None
     {prompt}
     """
 
-    config = {"recursion_limit": 40}
+    config = {"recursion_limit": 100}
 
     prompt_to_brainstormer = textwrap.dedent(prompt_to_brainstormer).strip()
     brainstormer_report = brainstormer.invoke(
@@ -37,6 +37,10 @@ def orchestrated_codegen(prompt: str, llm_api_key: str, model_name: str) -> None
     )
 
     prompt += "\n\n" + brainstormer_report["messages"][-1].content
+    print("#" * 50)
+    print("############### Final prompt for code generation:")
+    print(prompt)
+    print("#" * 50)
 
     class State(TypedDict):
         messages: Annotated[list, add_messages]
@@ -78,6 +82,7 @@ def orchestrated_codegen(prompt: str, llm_api_key: str, model_name: str) -> None
     g_config = {"recursion_limit": 100}
 
     response = g.invoke({"messages": [HumanMessage(content=prompt)]}, g_config)
+    
     for msg in response["messages"]:
         try:
             print(f"\n=== TOOL CALLED === {msg.tool_calls[0]['name']}\n")

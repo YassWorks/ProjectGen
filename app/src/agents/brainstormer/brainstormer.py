@@ -1,6 +1,7 @@
 from app.src.agents.brainstormer.config.config import get_agent
 from app.utils.ascii_art import ASCII_ART
 import uuid
+import os
 
 
 class BrainstormerAgent:
@@ -72,9 +73,16 @@ class BrainstormerAgent:
                 if not user_input:
                     continue
 
+                dir = os.path.dirname(os.path.abspath(__file__))
+                with open(os.path.join(dir, "config", "task.txt"), "r") as file:
+                    task = file.read().strip()
+                
+                prompt = f"The prompt provided by the user is: {user_input}\n\n"
+                prompt += f"Your job is write a detailed report guided by these instructions: \n{task}"
+                
                 print("\nAI:\n")
 
-                response = self.agent.invoke({"messages": user_input}, configuration)
+                response = self.agent.invoke({"messages": prompt}, configuration)
                 for msg in response["messages"]:
                     try:
                         print(f"\n=== TOOL CALLED === {msg.tool_calls[0]['name']}\n")
