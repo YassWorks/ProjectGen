@@ -19,9 +19,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 # this is purely for testing purposes
 # no non-privileged user cuz i wanna check stuff out inside the container
 
-RUN mkdir -p /projects/snake
-COPY docker_assets/conception.md /projects/snake/
-COPY docker_assets/workflow.md /projects/snake/
-
 COPY app/ ./app/
 COPY main.py ./

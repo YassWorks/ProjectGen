@@ -12,15 +12,17 @@ import os
 
 def get_agent(model_name: str, api_key: str, system_prompt: str = None, temperature: float = 0):
     
-    tools = [
-        extract_main_idea,
-        extract_tech_details,
-        get_features_ideas,
-        analyze_target_audience,
-        find_potential_pitfalls,
-        tools_help,
-    ]
+    # tools = [
+    #     extract_main_idea,
+    #     extract_tech_details,
+    #     get_features_ideas,
+    #     analyze_target_audience,
+    #     find_potential_pitfalls,
+    #     tools_help,
+    # ]
 
+    tools = []
+    
     if system_prompt is None:
         dir = os.path.dirname(os.path.abspath(__file__))
         with open(os.path.join(dir, "system_prompt.txt"), "r") as file:

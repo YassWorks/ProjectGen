@@ -1,5 +1,5 @@
 from app.utils.ascii_art import ASCII_ART
-from langchain_core.messages import AIMessage
+from langchain_core.messages import AIMessage, ToolMessage
 from langgraph.graph.state import CompiledStateGraph
 from app.src.config.ui import AgentUI
 from rich.console import Console
@@ -31,7 +31,6 @@ class BaseAgent:
         self.get_agent = get_agent
 
     def start_chat(self, recursion_limit: int = 100):
-
         self.ui.logo(ASCII_ART)
         self.ui.help(self.model_name)
 
@@ -121,30 +120,7 @@ class BaseAgent:
                 for chunk in self.agent.stream(
                     {"messages": [("human", user_input)]}, configuration
                 ):
-
-                    if "llm" in chunk:
-                        llm_data = chunk["llm"]
-                        if "messages" in llm_data:
-                            messages = llm_data["messages"]
-                            if messages and isinstance(messages[0], AIMessage):
-                                ai_message = messages[0]
-
-                                if ai_message.tool_calls:
-                                    for tool_call in ai_message.tool_calls:
-                                        self.ui.tool_call(
-                                            tool_call["name"], tool_call["args"]
-                                        )
-
-                                if ai_message.content and ai_message.content.strip():
-                                    self.ui.ai_response(ai_message.content)
-
-                    elif "tools" in chunk:
-                        tools_data = chunk["tools"]
-                        if "messages" in tools_data:
-                            for tool_message in tools_data["messages"]:
-                                self.ui.tool_output(
-                                    tool_message.name, tool_message.content
-                                )
+                    self.display_chunk(chunk)
 
             except KeyboardInterrupt:
                 self.ui.session_interrupted()
@@ -163,3 +139,85 @@ class BaseAgent:
             except Exception as e:
                 self.ui.error(str(e))
                 self.ui.dev_traceback()  # dev (remove later)
+
+    def invoke(
+        self,
+        message: str,
+        recursion_limit: int = 100,
+        extra_context: str | list[str] = None,
+        include_thinking_block: bool = False,
+        stream: bool = False,
+        intermediary_chunks: bool = False,
+    ):
+        configuration = {
+            "configurable": {"thread_id": "abc123"},  # for compatibility
+            "recursion_limit": recursion_limit,
+        }
+
+        if extra_context:
+            if isinstance(extra_context, str):
+                message = f"{message}\n\nExtra context you must know:\n{extra_context}"
+            elif isinstance(extra_context, list):
+                message = f"{message}\n\nExtra context you must know:\n" + "\n".join(
+                    extra_context
+                )
+
+        try:
+            if stream:
+                for chunk in self.agent.stream(
+                    {"messages": [("human", message)]},
+                    config=configuration,
+                ):
+                    self.display_chunk(chunk)
+                return None
+            else:
+                raw_response = self.agent.invoke(
+                    {"messages": [("human", message)]},
+                    config=configuration,
+                )
+        except langgraph.errors.GraphRecursionError:
+            self.ui.status_message(
+                title="Recursion Limit Exceeded",
+                message="The recursion limit has been exceeded. Please try a clearer input.",
+                style="red",
+            )
+            return ""
+        except openai.RateLimitError:
+            self.ui.status_message(
+                title="Rate Limit Exceeded",
+                message="Please try again later or switch to a different model.",
+                style="red",
+            )
+            return ""
+        except Exception as e:
+            self.ui.error(str(e))
+
+        if intermediary_chunks:
+            for chunk in raw_response.get("messages", []):
+                self.display_chunk(chunk)
+
+        ret = (
+            raw_response.get("messages", [])
+            and isinstance(raw_response["messages"][-1], AIMessage)
+            and hasattr(raw_response["messages"][-1], "content")
+            and raw_response["messages"][-1].content
+        ) or "Agent did not return any messages."
+
+        if not include_thinking_block:
+            ret = ret[ret.find("</think>") + len("</think>") :]
+        else:
+            if ret[0] != "<":
+                ret = "<think>\n" + ret  # some models omit the "<think>" token
+        return ret
+
+    def display_chunk(self, chunk):
+        if isinstance(chunk, AIMessage):
+            if chunk.tool_calls:
+                for tool_call in chunk.tool_calls:
+                    self.ui.tool_call(tool_call["name"], tool_call["args"])
+
+            if chunk.content and chunk.content.strip():
+                self.ui.ai_response(chunk.content)
+
+        elif isinstance(chunk, ToolMessage):
+            self.ui.tool_output(chunk.name, chunk.content)
