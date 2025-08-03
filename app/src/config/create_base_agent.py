@@ -20,19 +20,19 @@ def create_base_agent(
     tools: list,
     system_prompt: str,
     temperature: float = 0,
-) -> CompiledStateGraph:
+    include_graph: bool = False,
+) -> CompiledStateGraph | tuple[StateGraph, CompiledStateGraph]:
     """
     Create a base agent with common configuration and error handling.
     
     Args:
-        model_name: The model to use
-        api_key: API key for the model
-        tools: List of tools to bind to the agent
-        system_prompt: System prompt for the agent
-        agent_name: Name for the agent (for debugging)
-        temperature: Temperature for the model
-        temp_chat: Whether to use temporary chat memory
-    
+        model_name (str): The name of the model to use.
+        api_key (str): The API key for the model.
+        tools (list): List of tools to be used by the agent.
+        system_prompt (str): System prompt for the agent.
+        temperature (float): Temperature for the model.
+        include_graph (bool): Whether to include the graph in the response. Will return (graph, compiled_graph)
+
     Returns:
         Compiled state graph agent
     """
@@ -78,7 +78,12 @@ def create_base_agent(
     graph.add_edge("tools", "llm")
 
     mem = MemorySaver()
-    return graph.compile(checkpointer=mem)
+    built_graph = graph.compile(checkpointer=mem)
+    
+    if include_graph:
+       return graph, built_graph
+    else:
+        return built_graph
 
 
 def tool_call_attempted(state: State):

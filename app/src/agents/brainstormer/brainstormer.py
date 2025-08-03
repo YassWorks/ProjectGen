@@ -20,17 +20,19 @@ class BrainstormerAgent(BaseAgent):
         with open(task_directory, "r") as file:
             task = file.read().strip()
 
-        agent = get_agent(
+        graph, agent = get_agent(
             model_name=model_name,
             api_key=api_key,
             system_prompt=system_prompt,
             temperature=temperature,
+            include_graph=True,
         )
+        
         console = Console(width=80)
         ui = AgentUI(console)
 
         super().__init__(
-            model_name, api_key, system_prompt, agent, console, ui, get_agent
+            model_name, api_key, system_prompt, agent, console, ui, get_agent, graph
         )
         self.task = task
 

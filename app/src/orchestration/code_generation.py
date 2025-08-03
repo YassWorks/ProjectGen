@@ -77,19 +77,3 @@ def orchestrated_codegen(prompt: str, llm_api_key: str, model_name: str) -> None
     graph.add_edge("assistant", "code_gen")
 
     g = graph.compile()
-    print(f"Graph compiled: {g}")
-
-    g_config = {"recursion_limit": 100}
-
-    response = g.invoke({"messages": [HumanMessage(content=prompt)]}, g_config)
-    
-    for msg in response["messages"]:
-        try:
-            print(f"\n=== TOOL CALLED === {msg.tool_calls[0]['name']}\n")
-            args = msg.tool_calls[0]["args"]
-            for k, v in args.items():
-                print(f"------------ ARGUMENT: {k} \n{v}\n")
-            print("=" * 50)
-        except Exception:
-            pass
-    print(response["messages"][-1].content)

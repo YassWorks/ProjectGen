@@ -1,6 +1,7 @@
 from app.utils.ascii_art import ASCII_ART
 from langchain_core.messages import AIMessage, ToolMessage, BaseMessage
 from langgraph.graph.state import CompiledStateGraph
+from langgraph.graph import StateGraph
 from app.src.config.ui import AgentUI
 from rich.console import Console
 from rich.prompt import Prompt
@@ -21,6 +22,7 @@ class BaseAgent:
         console: Console,
         ui: AgentUI,
         get_agent: callable,
+        graph: StateGraph = None,
     ):
         self.model_name = model_name
         self.api_key = api_key
@@ -29,6 +31,7 @@ class BaseAgent:
         self.console = console
         self.ui = ui
         self.get_agent = get_agent
+        self.graph = graph
 
     def start_chat(self, recursion_limit: int = 100):
         self.ui.logo(ASCII_ART)
