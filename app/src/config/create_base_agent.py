@@ -48,7 +48,7 @@ def create_base_agent(
     template = ChatPromptTemplate.from_messages(
         [
             ("system", system_prompt),
-            ("human", "{messages}"),
+            ("placeholder", "{messages}"),
         ]
     )
 
@@ -57,7 +57,7 @@ def create_base_agent(
     graph = StateGraph(State)
 
     def llm_node(state: State):
-        return {"messages": [llm_chain.invoke(state["messages"])]}
+        return {"messages": [llm_chain.invoke({"messages": state["messages"]})]}
 
     tool_node = ToolNode(tools=tools)
 

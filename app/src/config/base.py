@@ -152,6 +152,7 @@ class BaseAgent:
         include_thinking_block: bool = False,
         stream: bool = False,
         intermediary_chunks: bool = False,
+        quiet: bool = False,
     ):
         configuration = {
             "configurable": {"thread_id": "abc123"},  # for compatibility
@@ -172,7 +173,8 @@ class BaseAgent:
                     {"messages": [("human", message)]},
                     config=configuration,
                 ):
-                    self.display_streamed_chunk(chunk)
+                    if not quiet:
+                        self.display_streamed_chunk(chunk)
                 return None
             else:
                 raw_response = self.agent.invoke(
@@ -180,23 +182,29 @@ class BaseAgent:
                     config=configuration,
                 )
         except langgraph.errors.GraphRecursionError:
-            self.ui.status_message(
-                title="Recursion Limit Exceeded",
-                message="The recursion limit has been exceeded. Please try a clearer input.",
-                style="red",
-            )
-            return ""
+            msg = "The recursion limit has been exceeded. Please try a clearer input."
+            if not quiet:
+                self.ui.status_message(
+                    title="Recursion Limit Exceeded",
+                    message=msg,
+                    style="red",
+                )
+            return msg
         except openai.RateLimitError:
-            self.ui.status_message(
-                title="Rate Limit Exceeded",
-                message="Please try again later or switch to a different model.",
-                style="red",
-            )
-            return ""
+            msg = "Please try again later or switch to a different model."
+            if not quiet:
+                self.ui.status_message(
+                    title="Rate Limit Exceeded",
+                    message=msg,
+                    style="red",
+                )
+            return msg
         except Exception as e:
-            self.ui.error(str(e))
+            if not quiet:
+                self.ui.error(str(e))
+            return "Unexpected error occurred. Please try again."
 
-        if intermediary_chunks:
+        if intermediary_chunks and not quiet:
             for chunk in raw_response.get("messages", []):
                 self.display_chunk(chunk)
 

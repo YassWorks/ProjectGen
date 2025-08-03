@@ -1,12 +1,16 @@
 from app.src.config.create_base_agent import create_base_agent
-from app.src.agents.web_searcher.config.tools import (
-    search_and_scrape
-)
+from app.src.agents.web_searcher.config.tools import search_and_scrape
 import os
 
 
-def get_agent(model_name: str, api_key: str, system_prompt: str = None, temperature: float = 0, include_graph: bool = False):
-    
+def get_agent(
+    model_name: str,
+    api_key: str,
+    system_prompt: str = None,
+    temperature: float = 0,
+    include_graph: bool = False,
+):
+
     tools = [
         search_and_scrape,
     ]
