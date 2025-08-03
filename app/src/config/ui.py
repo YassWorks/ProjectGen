@@ -14,9 +14,12 @@ class AgentUI:
 
     def logo(self, ascii_art: str):
         """Display ASCII art logo."""
+        tmp = self.console  # because I am using max width in the console
+        self.console = Console()
         ascii_text = Text(ascii_art)
         ascii_text.stylize("bold magenta", 0, len(ascii_art))
         self.console.print(ascii_text)
+        self.console = tmp
 
     def help(self, model_name: str):
         """Display help instructions and current model."""
@@ -135,21 +138,21 @@ class AgentUI:
     def goodbye(self):
         """Display goodbye message."""
         self.status_message(
-            "👋", "🚪 Goodbye!", "Thanks for using the AI Assistant!", "bright_blue"
+            emoji="👋", title="🚪 Goodbye!", message="Thanks for using the AI Assistant!", style="bright_blue"
         )
 
     def history_cleared(self):
         """Display history cleared message."""
         self.status_message(
-            "✨",
-            "🧹 History Cleared",
-            "Conversation history has been cleared!",
-            "green",
+            emoji="✨",
+            title="🧹 History Cleared",
+            message="Conversation history has been cleared!",
+            style="green",
         )
 
     def session_interrupted(self):
         """Display session interrupted message."""
-        self.status_message("🛑", "⚠️ Session Interrupted", "Interrupted by user", "red")
+        self.status_message(emoji="🛑", title="⚠️ Session Interrupted", message="Interrupted by user", style="red")
 
     def recursion_warning(self):
         """Display recursion warning with user prompt."""

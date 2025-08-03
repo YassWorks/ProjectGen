@@ -1,5 +1,5 @@
 from app.utils.ascii_art import ASCII_ART
-from langchain_core.messages import AIMessage, ToolMessage
+from langchain_core.messages import AIMessage, ToolMessage, BaseMessage
 from langgraph.graph.state import CompiledStateGraph
 from app.src.config.ui import AgentUI
 from rich.console import Console
@@ -120,7 +120,8 @@ class BaseAgent:
                 for chunk in self.agent.stream(
                     {"messages": [("human", user_input)]}, configuration
                 ):
-                    self.display_chunk(chunk)
+
+                    self.display_streamed_chunk(chunk)
 
             except KeyboardInterrupt:
                 self.ui.session_interrupted()
@@ -168,7 +169,7 @@ class BaseAgent:
                     {"messages": [("human", message)]},
                     config=configuration,
                 ):
-                    self.display_chunk(chunk)
+                    self.display_streamed_chunk(chunk)
                 return None
             else:
                 raw_response = self.agent.invoke(
@@ -210,7 +211,7 @@ class BaseAgent:
                 ret = "<think>\n" + ret  # some models omit the "<think>" token
         return ret
 
-    def display_chunk(self, chunk):
+    def display_chunk(self, chunk: BaseMessage):
         if isinstance(chunk, AIMessage):
             if chunk.tool_calls:
                 for tool_call in chunk.tool_calls:
@@ -221,3 +222,24 @@ class BaseAgent:
 
         elif isinstance(chunk, ToolMessage):
             self.ui.tool_output(chunk.name, chunk.content)
+
+    def display_streamed_chunk(self, chunk: dict):
+        if "llm" in chunk:
+            llm_data = chunk["llm"]
+            if "messages" in llm_data:
+                messages = llm_data["messages"]
+                if messages and isinstance(messages[0], AIMessage):
+                    ai_message = messages[0]
+
+                    if ai_message.tool_calls:
+                        for tool_call in ai_message.tool_calls:
+                            self.ui.tool_call(tool_call["name"], tool_call["args"])
+
+                    if ai_message.content and ai_message.content.strip():
+                        self.ui.ai_response(ai_message.content)
+
+        elif "tools" in chunk:
+            tools_data = chunk["tools"]
+            if "messages" in tools_data:
+                for tool_message in tools_data["messages"]:
+                    self.ui.tool_output(tool_message.name, tool_message.content)
