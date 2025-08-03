@@ -52,7 +52,10 @@ def create_base_agent(
         ]
     )
 
-    llm_with_tools = llm.bind_tools(tools=tools)
+    if tools:
+        llm_with_tools = llm.bind_tools(tools)
+    else:
+        llm_with_tools = llm
     llm_chain = template | llm_with_tools
     graph = StateGraph(State)
 

@@ -1,7 +1,7 @@
-from app.src.orchestration import code_generation
+from app.src.orchestration import integrate_web_search
 from app.src import agents
 
 __all__ = [
-    "code_generation",
+    "integrate_web_search",
     "agents"
 ]

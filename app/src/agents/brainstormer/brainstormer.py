@@ -52,6 +52,7 @@ class BrainstormerAgent(BaseAgent):
         include_thinking_block: bool = False,
         stream: bool = False,
         intermediary_chunks: bool = False,
+        quiet: bool = False,
     ):
         if extra_context:
             if isinstance(extra_context, str):
@@ -73,4 +74,5 @@ class BrainstormerAgent(BaseAgent):
             include_thinking_block=include_thinking_block,
             stream=stream,
             intermediary_chunks=intermediary_chunks,
+            quiet=quiet,
         )

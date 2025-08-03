@@ -11,8 +11,9 @@ def get_agent(
     temperature: float = 0,
     include_graph: bool = False,
 ):
+    tools = ALL_TOOLS.copy()  # Create a copy to avoid modifying global list
     if extra_tools:
-        ALL_TOOLS.extend(extra_tools)
+        tools.extend(extra_tools)
 
     if system_prompt is None:
         dir = os.path.dirname(os.path.abspath(__file__))
@@ -22,7 +23,7 @@ def get_agent(
     return create_base_agent(
         model_name=model_name,
         api_key=api_key,
-        tools=ALL_TOOLS,
+        tools=tools,
         system_prompt=system_prompt,
         temperature=temperature,
         include_graph=include_graph,

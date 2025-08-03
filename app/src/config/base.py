@@ -218,9 +218,11 @@ class BaseAgent:
         ) or "Agent did not return any messages."
 
         if not include_thinking_block:
-            ret = ret[ret.find("</think>") + len("</think>") :]
+            think_end = ret.find("</think>")
+            if think_end != -1:
+                ret = ret[think_end + len("</think>"):].strip()
         else:
-            if ret[0] != "<":
+            if ret and ret[0] != "<":
                 ret = "<think>\n" + ret  # some models omit the "<think>" token
         return ret
 

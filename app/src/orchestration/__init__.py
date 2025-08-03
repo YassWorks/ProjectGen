@@ -1,5 +1,6 @@
-from app.src.orchestration.code_generation import orchestrated_codegen
+from app.src.orchestration.integrate_web_search import orchestrated_codegen, integrate_web_search
 
 __all__ = [
-    "orchestrated_codegen"
+    "orchestrated_codegen",
+    "integrate_web_search"
 ]

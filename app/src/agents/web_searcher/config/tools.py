@@ -64,7 +64,9 @@ def google_search(query: str, n: int = 5) -> List[Dict[str, str]]:
 def fetch_page_text(url: str) -> str:
 
     try:
-        html = requests.get(url, timeout=10).text
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()  # Raise an exception for bad status codes
+        html = response.text
         soup = BeautifulSoup(html, "html.parser")
         # kill script/style
         for s in soup(["script", "style", "noscript"]):

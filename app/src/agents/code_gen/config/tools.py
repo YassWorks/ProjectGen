@@ -7,7 +7,7 @@ import os
 
 
 @tool
-def create_wd(path: str) -> None:
+def create_wd(path: str) -> str:
     """
     **PRIMARY PURPOSE**: Creates a new directory/folder at the specified path.
 
@@ -44,7 +44,7 @@ def create_wd(path: str) -> None:
 
 
 @tool
-def create_file(file_path: str, content: str) -> None:
+def create_file(file_path: str, content: str) -> str:
     """
     **PRIMARY PURPOSE**: Creates a brand new file with specified content.
 
@@ -82,7 +82,9 @@ def create_file(file_path: str, content: str) -> None:
     """
     try:
         # ensure the directory exists
-        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+        directory = os.path.dirname(file_path)
+        if directory:  # Only create directories if there's a directory component
+            os.makedirs(directory, exist_ok=True)
 
         with open(file_path, "w") as f:
             f.write(content)
@@ -178,7 +180,9 @@ def append_file(file_path: str, content: str) -> str:
     """
     try:
         # ensure the directory exists
-        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+        directory = os.path.dirname(file_path)
+        if directory:  # Only create directories if there's a directory component
+            os.makedirs(directory, exist_ok=True)
 
         with open(file_path, "a") as f:
             f.write(content)
