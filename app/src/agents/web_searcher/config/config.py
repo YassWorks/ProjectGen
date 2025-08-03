@@ -7,13 +7,15 @@ def get_agent(
     model_name: str,
     api_key: str,
     system_prompt: str = None,
+    extra_tools: list = None,
     temperature: float = 0,
     include_graph: bool = False,
 ):
-
     tools = [
         search_and_scrape,
     ]
+    if extra_tools:
+        tools.extend(extra_tools)
 
     if system_prompt is None:
         dir = os.path.dirname(os.path.abspath(__file__))

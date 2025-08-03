@@ -3,8 +3,17 @@ from app.src.agents.code_gen.config.tools import ALL_TOOLS
 import os
 
 
-def get_agent(model_name: str, api_key: str, system_prompt: str = None, temperature: float = 0, include_graph: bool = False):
-    
+def get_agent(
+    model_name: str,
+    api_key: str,
+    system_prompt: str = None,
+    extra_tools: list = None,
+    temperature: float = 0,
+    include_graph: bool = False,
+):
+    if extra_tools:
+        ALL_TOOLS.extend(extra_tools)
+
     if system_prompt is None:
         dir = os.path.dirname(os.path.abspath(__file__))
         with open(os.path.join(dir, "system_prompt.txt"), "r") as file:

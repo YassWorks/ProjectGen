@@ -22,6 +22,7 @@ class BaseAgent:
         console: Console,
         ui: AgentUI,
         get_agent: callable,
+        temperature: float = 0,
         graph: StateGraph = None,
     ):
         self.model_name = model_name
@@ -31,6 +32,7 @@ class BaseAgent:
         self.console = console
         self.ui = ui
         self.get_agent = get_agent
+        self.temperature = temperature
         self.graph = graph
 
     def start_chat(self, recursion_limit: int = 100):

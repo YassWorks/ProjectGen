@@ -1,18 +1,11 @@
 from app.src.agents.brainstormer.brainstormer import BrainstormerAgent
 from app.src.agents.web_searcher.web_searcher import WebSearcherAgent
 from app.src.config.base import BaseAgent
-from app.src.config.create_base_agent import State
-from langgraph.prebuilt import ToolNode, tools_condition
-from langgraph.graph import StateGraph, START, END
-from langchain_core.messages import HumanMessage
-from langgraph.graph.message import add_messages
 from langchain_core.tools import tool
-import textwrap
 
 
-def integrate_web_search(agent: BaseAgent, web_searcher: WebSearcherAgent):
 
-    graph = StateGraph(State)
+def integrate_web_search(agent: BaseAgent, web_searcher: WebSearcherAgent) -> None:
 
     @tool
     def call_searcher(query: str) -> str:
@@ -31,18 +24,16 @@ def integrate_web_search(agent: BaseAgent, web_searcher: WebSearcherAgent):
             quiet=True,
         )
 
-    tool_node = ToolNode(tools=[call_searcher])
-
-    def agent_node(state: State): ...
-
-    graph.add_node("agent", agent_node)
-    graph.add_node("assistant", tool_node)
-
-    graph.add_edge(START, "agent")
-    graph.add_conditional_edges(
-        "agent", tools_condition, {"assistant": "assistant", END: END}
+    enhanced_agent, enhanced_graph = agent.get_agent(
+        model_name=agent.model_name,
+        api_key=agent.api_key,
+        extra_tools=[call_searcher],
+        temperature=agent.temperature,
+        include_graph=True,
     )
-    graph.add_edge("assistant", "agent")
+
+    agent.agent = enhanced_agent
+    agent.graph = enhanced_graph
 
 
 # def orchestrated_codegen(prompt: str, llm_api_key: str, model_name: str) -> None:
@@ -75,5 +66,3 @@ def integrate_web_search(agent: BaseAgent, web_searcher: WebSearcherAgent):
 #     print("############### Final prompt for code generation:")
 #     print(prompt)
 #     print("#" * 50)
-
-    
