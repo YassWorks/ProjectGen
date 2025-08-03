@@ -16,9 +16,9 @@ class BrainstormerAgent(BaseAgent):
     ):
 
         task_directory = os.path.dirname(os.path.abspath(__file__))
-        task_directory = os.path.join(task_directory, "config", "task.txt")
+        task_directory = os.path.join(task_directory, "config", "minimal_task.txt")
         with open(task_directory, "r") as file:
-            task = file.read().strip()
+            minimal_task = file.read().strip()
 
         graph, agent = get_agent(
             model_name=model_name,
@@ -42,37 +42,4 @@ class BrainstormerAgent(BaseAgent):
             temperature=temperature,
             graph=graph,
         )
-        self.task = task
-
-    def invoke(
-        self,
-        message: str,
-        recursion_limit: int = 100,
-        extra_context: str | list[str] = None,
-        include_thinking_block: bool = False,
-        stream: bool = False,
-        intermediary_chunks: bool = False,
-        quiet: bool = False,
-    ):
-        if extra_context:
-            if isinstance(extra_context, str):
-                full_extra_context = (
-                    f"{self.task}\n\nExtra context you must know:\n{extra_context}"
-                )
-            elif isinstance(extra_context, list):
-                full_extra_context = (
-                    f"{self.task}\n\nExtra context you must know:\n"
-                    + "\n".join(extra_context)
-                )
-        else:
-            full_extra_context = self.task
-
-        return super().invoke(
-            message=message,
-            recursion_limit=recursion_limit,
-            extra_context=full_extra_context,
-            include_thinking_block=include_thinking_block,
-            stream=stream,
-            intermediary_chunks=intermediary_chunks,
-            quiet=quiet,
-        )
+        self.minimal_task = minimal_task  # minimal default prompt for brainstorming

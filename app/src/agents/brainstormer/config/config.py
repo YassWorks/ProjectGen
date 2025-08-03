@@ -1,12 +1,5 @@
 from app.src.config.create_base_agent import create_base_agent
-# from app.src.agents.brainstormer.config.tools import (
-#     extract_main_idea,
-#     extract_tech_details,
-#     get_features_ideas,
-#     analyze_target_audience,
-#     find_potential_pitfalls,
-#     tools_help,
-# )
+from app.src.config.tools import FILE_TOOLS
 import os
 
 
@@ -18,7 +11,7 @@ def get_agent(
     temperature: float = 0,
     include_graph: bool = True,
 ):
-    tools = []
+    tools = FILE_TOOLS.copy()
     if extra_tools:
         tools.extend(extra_tools)
 

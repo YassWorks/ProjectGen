@@ -23,7 +23,7 @@ def integrate_web_search(agent: BaseAgent, web_searcher: WebSearcherAgent) -> No
             quiet=True,
         )
 
-    enhanced_agent, enhanced_graph = agent.get_agent(
+    enhanced_graph, enhanced_agent = agent.get_agent(
         model_name=agent.model_name,
         api_key=agent.api_key,
         extra_tools=[call_searcher],

@@ -11,7 +11,7 @@ def get_agent(
     temperature: float = 0,
     include_graph: bool = False,
 ):
-    tools = ALL_TOOLS.copy()  # Create a copy to avoid modifying global list
+    tools = ALL_TOOLS.copy()
     if extra_tools:
         tools.extend(extra_tools)
 
