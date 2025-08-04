@@ -18,4 +18,4 @@ unit1 = CodeGenUnit(
     brainstormer_agent=bs,
 )
 
-unit1.run(stream=True)
+unit1.run(stream=False)

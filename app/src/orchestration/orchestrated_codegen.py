@@ -45,10 +45,11 @@ class CodeGenUnit:
         self.console.print()
         self.ui.logo(ASCII_ART)
         self.ui.help()
-        
+
         working_dir = None
         while not working_dir:
             try:
+                self.console.print()
                 working_dir = Prompt.ask(
                     "[blue]  Please provide the working directory",
                     console=self.console,
@@ -86,13 +87,26 @@ class CodeGenUnit:
             else config
         )
 
-        # Starting work
         # Creating the context space for the code_gen agent
-        bs_results = self.brainstormer_agent.invoke(
-            message=brainstormer_prompt,
-            config=configuration,
-            stream=stream,
-        )
+        self.console.print()
+        if not stream:
+            with self.console.status(
+                "[bold green]🧠 Brainstormer Agent is analyzing your request...",
+                spinner="dots",
+            ):
+                bs_results = self.brainstormer_agent.invoke(
+                    message=brainstormer_prompt,
+                    config=configuration,
+                    stream=stream,
+                    quiet=stream,  # if the user doesn't want to see the steps, errors are useless too
+                )
+        else:
+            bs_results = self.brainstormer_agent.invoke(
+                message=brainstormer_prompt,
+                config=configuration,
+                stream=stream,
+                quiet=stream,
+            )
 
         self.ui.status_message(
             title="Context Engineering steps done!",
@@ -101,7 +115,7 @@ class CodeGenUnit:
             style="bold green",
         )
 
-        if "[ERROR]" not in bs_results:
+        if "[ERROR]" not in bs_results and not stream:
             self.console.print("[bold green]  Final Brainstormer Agent message:")
             md = Markdown(bs_results)
             self.console.print(md)
@@ -124,7 +138,7 @@ class CodeGenUnit:
             ):
                 sleep(1)
             self.console.print(
-                "[bold green]  You may exit anytime by typing 'exit', 'quit', 'q' or by pressing Ctrl+c [/bold green]"
+                "[bold green]  You may exit anytime by typing '/exit', '/quit', '/q' or by pressing Ctrl+c [/bold green]"
             )
 
             self.brainstormer_agent.start_chat(config=configuration, show_welcome=False)
@@ -153,15 +167,29 @@ class CodeGenUnit:
             "recursion_limit": recursion_limit,
         }
 
-        codegen_results = self.code_gen_agent.invoke(
-            message=codegen_prompt,
-            config=configuration,
-            stream=stream,
-        )
-        
+        self.console.print()
+        if not stream:
+            with self.console.status(
+                "[bold green]⚡ CodeGen Agent is generating your project...",
+                spinner="dots",
+            ):
+                codegen_results = self.code_gen_agent.invoke(
+                    message=codegen_prompt,
+                    config=configuration,
+                    stream=stream,
+                    quiet=stream,
+                )
+        else:
+            codegen_results = self.code_gen_agent.invoke(
+                message=codegen_prompt,
+                config=configuration,
+                stream=stream,
+                quiet=stream,
+            )
+
         self.ui.status_message(
             title="Initial project generation done!",
-            message=f"You can always check the files generated at the following path: {working_dir}",
+            message=f"You can always check the code generated at the following path: {working_dir}",
             emoji="📝",
             style="bold green",
         )
@@ -170,7 +198,7 @@ class CodeGenUnit:
             self.console.print("[bold green]  Final CodeGen Agent message:")
             md = Markdown(codegen_results)
             self.console.print(md)
-        
+
         self.console.print()
         with self.console.status(
             "[bold green]  Starting conversation with the CodeGen Agent...",
@@ -178,7 +206,7 @@ class CodeGenUnit:
         ):
             sleep(1)
         self.console.print(
-            "[bold green]  You may exit anytime by typing 'exit', 'quit', 'q' or by pressing Ctrl+c [/bold green]"
+            "[bold green]  You may exit anytime by typing '/exit', '/quit', '/q' or by pressing Ctrl+c [/bold green]"
         )
-        
+
         self.code_gen_agent.start_chat(config=configuration, show_welcome=False)
