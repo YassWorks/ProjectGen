@@ -1,7 +1,7 @@
 from app.utils.ascii_art import ASCII_ART
 from langchain_core.messages import AIMessage, ToolMessage, BaseMessage
 from langgraph.graph.state import CompiledStateGraph
-from typing import Union
+from typing import Union, Callable
 from langgraph.graph import StateGraph
 from app.src.config.ui import AgentUI
 from rich.console import Console
@@ -22,7 +22,7 @@ class BaseAgent:
         agent: CompiledStateGraph,
         console: Console,
         ui: AgentUI,
-        get_agent: callable,
+        get_agent: Callable,
         temperature: float = 0,
         graph: StateGraph = None,
     ):
@@ -178,20 +178,24 @@ class BaseAgent:
 
         try:
             if stream:
+                last = None
                 for chunk in self.agent.stream(
                     {"messages": [("human", message)]},
                     config=configuration,
                 ):
                     if not quiet:
                         self._display_chunk(chunk)
-                return None
+                    last = chunk
+                raw_response = last.get(
+                    "llm", {}
+                )  # NOTE this line depends on the graph implementation
             else:
                 raw_response = self.agent.invoke(
                     {"messages": [("human", message)]},
                     config=configuration,
                 )
         except langgraph.errors.GraphRecursionError:
-            msg = "The recursion limit has been exceeded. Please try a clearer input."
+            msg = "[ERROR] The recursion limit has been exceeded. Please try a clearer input."
             if not quiet:
                 self.ui.status_message(
                     title="Recursion Limit Exceeded",
@@ -200,7 +204,7 @@ class BaseAgent:
                 )
             return msg
         except openai.RateLimitError:
-            msg = "Please try again later or switch to a different model."
+            msg = "[ERROR] Please try again later or switch to a different model."
             if not quiet:
                 self.ui.status_message(
                     title="Rate Limit Exceeded",
@@ -211,7 +215,7 @@ class BaseAgent:
         except Exception as e:
             if not quiet:
                 self.ui.error(str(e))
-            return "Unexpected error occurred. Please try again."
+            return "[ERROR] Unexpected error occurred. Please try again."
 
         if intermediary_chunks and not quiet:
             for chunk in raw_response.get("messages", []):
@@ -221,13 +225,13 @@ class BaseAgent:
             raw_response.get("messages", [])
             and isinstance(raw_response["messages"][-1], AIMessage)
             and hasattr(raw_response["messages"][-1], "content")
-            and raw_response["messages"][-1].content
-        ) or "Agent did not return any messages."
+            and raw_response["messages"][-1].content.strip()
+        ) or "[ERROR] Agent did not return any messages."
 
         if not include_thinking_block:
             think_end = ret.find("</think>")
             if think_end != -1:
-                ret = ret[think_end + len("</think>"):].strip()
+                ret = ret[think_end + len("</think>") :].strip()
         else:
             if ret and ret[0] != "<":
                 ret = "<think>\n" + ret  # some models omit the "<think>" token
@@ -241,7 +245,9 @@ class BaseAgent:
             elif isinstance(chunk, ToolMessage):
                 self._handle_tool_message(chunk)
 
-        elif isinstance(chunk, dict):
+        elif isinstance(
+            chunk, dict
+        ):  # NOTE that this part depends on the graph implementation
             # Streamed message format
             llm_data = chunk.get("llm", {})
             if "messages" in llm_data:
@@ -263,4 +269,3 @@ class BaseAgent:
 
     def _handle_tool_message(self, message: ToolMessage):
         self.ui.tool_output(message.name, message.content)
-
