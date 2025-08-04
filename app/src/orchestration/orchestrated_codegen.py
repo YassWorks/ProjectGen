@@ -15,6 +15,17 @@ from typing import Any
 
 
 class CodeGenUnit:
+    """Orchestrates multiple agents for complete project generation.
+    
+    Coordinates between brainstormer, code generation, and web search agents
+    to transform project concepts into functional codebases.
+    
+    Args:
+        code_gen_agent: Agent for generating project code and structure
+        web_searcher_agent: Agent for web research and information gathering
+        brainstormer_agent: Agent for project analysis and idea extraction
+        assistant: Optional additional assistant for complex operations
+    """
 
     def __init__(
         self,
@@ -31,6 +42,7 @@ class CodeGenUnit:
         self.ui = AgentUI(self.console)
 
     def enhance_agents(self):
+        """Integrate web search capabilities into brainstormer and code generation agents."""
         integrate_web_search(
             agent=self.code_gen_agent, web_searcher=self.web_searcher_agent
         )
@@ -41,6 +53,13 @@ class CodeGenUnit:
     def run(
         self, recursion_limit: int = 100, config: dict = None, stream: bool = False
     ):
+        """Start the interactive project generation workflow.
+        
+        Args:
+            recursion_limit: Maximum recursion depth for agent operations
+            config: Optional configuration dictionary
+            stream: Whether to stream responses during generation
+        """
         self.enhance_agents()
         self.console.print()
         self.ui.logo(ASCII_ART)

@@ -21,9 +21,18 @@ TIMEOUT = 10  # seconds
 
 
 def google_search(query: str, n: int = 5) -> List[Dict[str, str]]:
-    """
-    Return up to `n` Google results as a list of dicts
-    (title, link, snippet).  Raises requests.HTTPError on failure.
+    """Search Google and return structured results.
+    
+    Args:
+        query: Search query string
+        n: Maximum number of results to return
+        
+    Returns:
+        List of dictionaries with 'title' and 'link' keys
+        
+    Raises:
+        ValueError: If API key or search engine ID not configured
+        requests.HTTPError: If search request fails
     """
 
     if not GGL_API_KEY or not CX_ID:
@@ -62,6 +71,14 @@ def google_search(query: str, n: int = 5) -> List[Dict[str, str]]:
 
 
 def fetch_page_text(url: str) -> str:
+    """Extract text content from a web page.
+    
+    Args:
+        url: URL to scrape
+        
+    Returns:
+        Cleaned text content (max 1000 chars) or error message
+    """
 
     try:
         response = requests.get(url, timeout=10)

@@ -13,6 +13,22 @@ import openai
 
 
 class BaseAgent:
+    """Base class for all agent implementations.
+    
+    Provides common functionality including chat interface, model management,
+    and message handling for agent interactions.
+    
+    Args:
+        model_name: LLM model identifier
+        api_key: API key for model provider
+        system_prompt: System prompt for agent behavior
+        agent: Compiled state graph for agent execution
+        console: Rich console for UI rendering
+        ui: Agent UI handler
+        get_agent: Function to create new agent instances
+        temperature: Model temperature for randomness control
+        graph: Optional state graph for advanced operations
+    """
 
     def __init__(
         self,
@@ -37,6 +53,13 @@ class BaseAgent:
         self.graph = graph
 
     def start_chat(self, recursion_limit: int = 100, config: dict = None, show_welcome: bool = True):
+        """Start interactive chat session with the agent.
+        
+        Args:
+            recursion_limit: Maximum recursion depth for agent operations  
+            config: Optional configuration dictionary
+            show_welcome: Whether to display welcome message and logo
+        """
         if show_welcome:
             self.ui.logo(ASCII_ART)
             self.ui.help(self.model_name)
@@ -162,6 +185,21 @@ class BaseAgent:
         intermediary_chunks: bool = False,
         quiet: bool = False,
     ):
+        """Invoke agent with a message and return response.
+        
+        Args:
+            message: Input message for the agent
+            recursion_limit: Maximum recursion depth
+            config: Optional configuration dictionary
+            extra_context: Additional context string or list of strings
+            include_thinking_block: Whether to include thinking process
+            stream: Whether to stream response chunks
+            intermediary_chunks: Whether to show intermediate processing
+            quiet: Whether to suppress UI output
+            
+        Returns:
+            Agent response as string
+        """
         configuration = (
             {
                 "configurable": {"thread_id": str(uuid.uuid4())},  # for compatibility

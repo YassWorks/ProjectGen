@@ -5,6 +5,17 @@ from app.src.config.base import BaseAgent
 
 
 class CodeGenAgent(BaseAgent):
+    """Agent specialized in generating complete project structures and code.
+    
+    Creates functional codebases with proper file organization, dependencies,
+    and documentation based on project requirements.
+    
+    Args:
+        model_name: LLM model identifier
+        api_key: API key for model provider
+        system_prompt: Optional custom system prompt
+        temperature: Model temperature for code consistency
+    """
 
     def __init__(
         self,

@@ -11,6 +11,19 @@ def get_agent(
     temperature: float = 0,
     include_graph: bool = False,
 ):
+    """Create a code generation agent with file and execution tools.
+    
+    Args:
+        model_name: LLM model identifier
+        api_key: API key for model provider
+        system_prompt: Optional custom system prompt
+        extra_tools: Additional tools to include
+        temperature: Model temperature for code consistency
+        include_graph: Whether to return the graph along with agent
+        
+    Returns:
+        Agent instance or tuple of (graph, agent) if include_graph is True
+    """
     tools = ALL_TOOLS.copy()
     if extra_tools:
         tools.extend(extra_tools)

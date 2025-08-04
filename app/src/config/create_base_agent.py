@@ -11,6 +11,7 @@ from langchain_core.prompts import ChatPromptTemplate
 
 class State(TypedDict):
     """Common state structure for all agents."""
+
     messages: Annotated[list, add_messages]
 
 
@@ -22,21 +23,20 @@ def create_base_agent(
     temperature: float = 0,
     include_graph: bool = False,
 ) -> CompiledStateGraph | tuple[StateGraph, CompiledStateGraph]:
-    """
-    Create a base agent with common configuration and error handling.
-    
+    """Create a base agent with common configuration and error handling.
+
     Args:
-        model_name (str): The name of the model to use.
-        api_key (str): The API key for the model.
-        tools (list): List of tools to be used by the agent.
-        system_prompt (str): System prompt for the agent.
-        temperature (float): Temperature for the model.
-        include_graph (bool): Whether to include the graph in the response. Will return (graph, compiled_graph)
+        model_name: The name of the model to use
+        api_key: The API key for the model
+        tools: List of tools to be used by the agent
+        system_prompt: System prompt for the agent
+        temperature: Temperature for the model
+        include_graph: Whether to include the graph in the response
 
     Returns:
-        Compiled state graph agent
+        Compiled state graph agent or tuple of (graph, compiled_graph)
     """
-    
+
     llm = ChatCerebras(
         model=model_name,
         temperature=temperature,
@@ -82,15 +82,16 @@ def create_base_agent(
 
     mem = MemorySaver()
     built_graph = graph.compile(checkpointer=mem)
-    
+
     if include_graph:
-       return graph, built_graph
+        return graph, built_graph
     else:
         return built_graph
 
 
 def tool_call_attempted(state: State):
     """Check if the agent attempted to make a tool call."""
+
     if state["messages"]:
         ai_message = state["messages"][-1]
         content = ai_message.content
@@ -101,7 +102,7 @@ def tool_call_attempted(state: State):
     # Check if tool calls were made or if it looks like the agent tried to make one
     if tool_calls or any(
         substr in content for substr in ("{", "}", "tool_call", "arguments")
-    ):  
+    ):
         return "toolcall_checker"
     else:
         return END
@@ -109,13 +110,14 @@ def tool_call_attempted(state: State):
 
 def valid_toolcall(state: State):
     """Validate tool calls and handle malformed ones."""
+
     if state["messages"]:
         ai_message = state["messages"][-1]
         content = ai_message.content
         tool_calls = ai_message.tool_calls
     else:
         raise ValueError("No messages found in input state to check for tool calls.")
-    
+
     # Check for malformed tool calls
     if not tool_calls and any(
         substr in content for substr in ("{", "}", "tool_call", "arguments", "<tool")

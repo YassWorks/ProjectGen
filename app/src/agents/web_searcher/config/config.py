@@ -11,6 +11,19 @@ def get_agent(
     temperature: float = 0,
     include_graph: bool = False,
 ):
+    """Create a web searcher agent with search and scraping tools.
+    
+    Args:
+        model_name: LLM model identifier
+        api_key: API key for model provider
+        system_prompt: Optional custom system prompt
+        extra_tools: Additional tools to include
+        temperature: Model temperature for search diversity
+        include_graph: Whether to return the graph along with agent
+        
+    Returns:
+        Agent instance or tuple of (graph, agent) if include_graph is True
+    """
     tools = [
         search_and_scrape,
     ]
