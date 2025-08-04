@@ -36,15 +36,15 @@ class BaseAgent:
         self.temperature = temperature
         self.graph = graph
 
-    def start_chat(self, recursion_limit: int = 100, config: dict = None):
-        self.ui.logo(ASCII_ART)
-        self.ui.help(self.model_name)
+    def start_chat(self, recursion_limit: int = 100, config: dict = None, show_welcome: bool = True):
+        if show_welcome:
+            self.ui.logo(ASCII_ART)
+            self.ui.help(self.model_name)
 
-        if config is None:
-            configuration = {
-                "configurable": {"thread_id": str(uuid.uuid4())},
-                "recursion_limit": recursion_limit,
-            }
+        configuration = {
+            "configurable": {"thread_id": str(uuid.uuid4())},
+            "recursion_limit": recursion_limit,
+        } if config is None else config
 
         continue_flag = False
 
@@ -162,11 +162,14 @@ class BaseAgent:
         intermediary_chunks: bool = False,
         quiet: bool = False,
     ):
-        if config is None:
-            configuration = {
+        configuration = (
+            {
                 "configurable": {"thread_id": str(uuid.uuid4())},  # for compatibility
                 "recursion_limit": recursion_limit,
             }
+            if config is None
+            else config
+        )
 
         if extra_context:
             if isinstance(extra_context, str):

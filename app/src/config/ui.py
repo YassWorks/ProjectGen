@@ -21,7 +21,7 @@ class AgentUI:
         self.console.print(ascii_text)
         self.console = tmp
 
-    def help(self, model_name: str):
+    def help(self, model_name: str = None):
         """Display help instructions and current model."""
         self.console.print("━" * 50, style="yellow")
         self.console.print("[bold yellow] Instructions[/bold yellow]")
@@ -34,7 +34,8 @@ class AgentUI:
         self.console.print(
             "   Type [bold]'cls'[/bold], [bold]'clearterm'[/bold], or [bold]'clearscreen'[/bold] to clear terminal"
         )
-        self.console.print(f"   Current model: [bold green]{model_name}[/bold green]")
+        if model_name:
+            self.console.print(f"   Current model: [bold green]{model_name}[/bold green]")
         self.console.print("━" * 50, style="yellow")
 
     def simulate_thinking(self):

@@ -2,6 +2,7 @@ from app.src.agents.code_gen.code_gen import CodeGenAgent
 from app.src.agents.web_searcher.web_searcher import WebSearcherAgent
 from app.src.agents.brainstormer.brainstormer import BrainstormerAgent
 from app.src.orchestration.integrate_web_search import integrate_web_search
+from app.utils.ascii_art import ASCII_ART
 from langchain_cerebras import ChatCerebras
 from app.src.config.ui import AgentUI
 from pathlib import Path
@@ -26,7 +27,7 @@ class CodeGenUnit:
         self.web_searcher_agent = web_searcher_agent
         self.brainstormer_agent = brainstormer_agent
         self.assistant = assistant
-        self.console = Console(width=80)
+        self.console = Console(width=100)
         self.ui = AgentUI(self.console)
 
     def enhance_agents(self):
@@ -41,12 +42,15 @@ class CodeGenUnit:
         self, recursion_limit: int = 100, config: dict = None, stream: bool = False
     ):
         self.enhance_agents()
-
+        self.console.print()
+        self.ui.logo(ASCII_ART)
+        self.ui.help()
+        
         working_dir = None
         while not working_dir:
             try:
                 working_dir = Prompt.ask(
-                    "Please provide the working directory (it will get created if it doesn't exist): ",
+                    "[blue]  Please provide the working directory",
                     console=self.console,
                 )
                 os.makedirs(working_dir, exist_ok=True)
@@ -56,8 +60,9 @@ class CodeGenUnit:
                 )
                 working_dir = None
 
+        self.console.print()
         user_input = Prompt.ask(
-            "What cool ideas do you have for me today? ", console=self.console
+            "[blue]  What cool ideas do you have for me today? ", console=self.console
         ).strip()
 
         prompts_dir = Path(__file__).resolve().parents[2]
@@ -66,11 +71,10 @@ class CodeGenUnit:
             context_engineering_steps = file.read()
 
         brainstormer_prompt = (
-            f"IMPORTANT: Place your entire work inside {working_dir}\n\n"
-            + context_engineering_steps
+            context_engineering_steps
             + "\n\n# User input:\n"
             + user_input
-            + f"\n\nIMPORTANT: Remember to place your entire work inside {working_dir}"
+            + f"\n\nIMPORTANT: Place your entire work inside {working_dir}"
         )
 
         configuration = (
@@ -102,9 +106,10 @@ class CodeGenUnit:
             md = Markdown(bs_results)
             self.console.print(md)
 
+        self.console.print()
         usr_answer = (
             Prompt.ask(
-                "Would you like to add additional context before beginning code generation? (y/n): ",
+                "[blue]  Would you like to add additional context before beginning code generation? (y/n) ",
                 console=self.console,
             )
             .strip()
@@ -122,7 +127,7 @@ class CodeGenUnit:
                 "[bold green]  You may exit anytime by typing 'exit', 'quit', 'q' or by pressing Ctrl+c [/bold green]"
             )
 
-            self.brainstormer_agent.start_chat(config=configuration)
+            self.brainstormer_agent.start_chat(config=configuration, show_welcome=False)
 
         # Starting code generation
         self.ui.status_message(
@@ -137,9 +142,8 @@ class CodeGenUnit:
             codegen_start = file.read()
 
         codegen_prompt = (
-            f"IMPORTANT: Place your entire work inside {working_dir}\n\n"
-            + codegen_start
-            + f"\n\nIMPORTANT: Remember to place your entire work inside {working_dir}"
+            codegen_start
+            + f"\n\nIMPORTANT: Place your entire work inside {working_dir}"
         )
 
         # Overwriting the config so that the codegen agent doesn't get confused
@@ -177,4 +181,4 @@ class CodeGenUnit:
             "[bold green]  You may exit anytime by typing 'exit', 'quit', 'q' or by pressing Ctrl+c [/bold green]"
         )
         
-        self.code_gen_agent.start_chat(config=configuration)
+        self.code_gen_agent.start_chat(config=configuration, show_welcome=False)

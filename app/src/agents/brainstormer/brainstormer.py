@@ -16,7 +16,7 @@ class BrainstormerAgent(BaseAgent):
     ):
 
         task_directory = os.path.dirname(os.path.abspath(__file__))
-        task_directory = os.path.join(task_directory, "config", "minimal_task.txt")
+        task_directory = os.path.join(task_directory, "config", "task.txt")
         with open(task_directory, "r") as file:
             minimal_task = file.read().strip()
 
