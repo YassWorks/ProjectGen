@@ -117,14 +117,14 @@ class CodeGenUnit:
                     message=brainstormer_prompt,
                     config=configuration,
                     stream=stream,
-                    quiet=stream,  # if the user doesn't want to see the steps, errors are useless too
+                    quiet=not stream,  # if the user doesn't want to see the steps, errors are useless too
                 )
         else:
             bs_results = self.brainstormer_agent.invoke(
                 message=brainstormer_prompt,
                 config=configuration,
                 stream=stream,
-                quiet=stream,
+                quiet=not stream,
             )
 
         self.ui.status_message(
@@ -196,14 +196,14 @@ class CodeGenUnit:
                     message=codegen_prompt,
                     config=configuration,
                     stream=stream,
-                    quiet=stream,
+                    quiet=not stream,
                 )
         else:
             codegen_results = self.code_gen_agent.invoke(
                 message=codegen_prompt,
                 config=configuration,
                 stream=stream,
-                quiet=stream,
+                quiet=not stream,
             )
 
         self.ui.status_message(
