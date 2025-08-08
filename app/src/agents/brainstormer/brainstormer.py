@@ -2,6 +2,7 @@ from app.src.agents.brainstormer.config.config import get_agent
 from app.src.config.ui import AgentUI
 from rich.console import Console
 from app.src.config.base import BaseAgent
+from app.utils.constants import CONSOLE_WIDTH
 import os
 
 
@@ -39,7 +40,7 @@ class BrainstormerAgent(BaseAgent):
             include_graph=True,
         )
 
-        console = Console(width=80)
+        console = Console(width=CONSOLE_WIDTH)
         ui = AgentUI(console)
 
         super().__init__(

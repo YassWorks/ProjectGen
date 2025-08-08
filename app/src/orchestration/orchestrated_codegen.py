@@ -3,7 +3,6 @@ from app.src.agents.web_searcher.web_searcher import WebSearcherAgent
 from app.src.agents.brainstormer.brainstormer import BrainstormerAgent
 from app.src.orchestration.integrate_web_search import integrate_web_search
 from app.utils.ascii_art import ASCII_ART
-from langchain_cerebras import ChatCerebras
 from app.src.config.ui import AgentUI
 from pathlib import Path
 import os
@@ -11,15 +10,14 @@ from rich.markdown import Markdown
 from rich.console import Console
 from rich.prompt import Prompt
 from time import sleep
-from typing import Any
 
 
 class CodeGenUnit:
     """Orchestrates multiple agents for complete project generation.
-    
+
     Coordinates between brainstormer, code generation, and web search agents
     to transform project concepts into functional codebases.
-    
+
     Args:
         code_gen_agent: Agent for generating project code and structure
         web_searcher_agent: Agent for web research and information gathering
@@ -32,12 +30,10 @@ class CodeGenUnit:
         code_gen_agent: CodeGenAgent,
         web_searcher_agent: WebSearcherAgent,
         brainstormer_agent: BrainstormerAgent,
-        assistant: ChatCerebras | Any = None,
     ):
         self.code_gen_agent = code_gen_agent
         self.web_searcher_agent = web_searcher_agent
         self.brainstormer_agent = brainstormer_agent
-        self.assistant = assistant
         self.console = Console(width=100)
         self.ui = AgentUI(self.console)
 
@@ -54,7 +50,7 @@ class CodeGenUnit:
         self, recursion_limit: int = 100, config: dict = None, stream: bool = False
     ):
         """Start the interactive project generation workflow.
-        
+
         Args:
             recursion_limit: Maximum recursion depth for agent operations
             config: Optional configuration dictionary

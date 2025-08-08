@@ -1,6 +1,7 @@
 from app.src.agents.web_searcher.config.config import get_agent
 from app.src.config.ui import AgentUI
 from rich.console import Console
+from app.utils.constants import CONSOLE_WIDTH
 from app.src.config.base import BaseAgent
 
 
@@ -32,7 +33,7 @@ class WebSearcherAgent(BaseAgent):
             include_graph=True,
         )
 
-        console = Console(width=80)
+        console = Console(width=CONSOLE_WIDTH)
         ui = AgentUI(console)
 
         super().__init__(
