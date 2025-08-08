@@ -8,7 +8,6 @@ from pathlib import Path
 import os
 from rich.markdown import Markdown
 from rich.console import Console
-from rich.prompt import Prompt
 from time import sleep
 
 
@@ -37,7 +36,7 @@ class CodeGenUnit:
         self.console = Console(width=100)
         self.ui = AgentUI(self.console)
 
-    def enhance_agents(self):
+    def _enhance_agents(self):
         """Integrate web search capabilities into brainstormer and code generation agents."""
         integrate_web_search(
             agent=self.code_gen_agent, web_searcher=self.web_searcher_agent
@@ -47,7 +46,12 @@ class CodeGenUnit:
         )
 
     def run(
-        self, recursion_limit: int = 100, config: dict = None, stream: bool = False
+        self,
+        recursion_limit: int = 100,
+        config: dict = None,
+        stream: bool = False,
+        show_welcome: bool = True,
+        working_dir: str = None,
     ):
         """Start the interactive project generation workflow.
 
@@ -55,19 +59,23 @@ class CodeGenUnit:
             recursion_limit: Maximum recursion depth for agent operations
             config: Optional configuration dictionary
             stream: Whether to stream responses during generation
+            show_welcome: Whether to show the welcome message
+            working_dir: The working directory for the project
         """
-        self.enhance_agents()
-        self.console.print()
-        self.ui.logo(ASCII_ART)
-        self.ui.help()
+        self._enhance_agents()
 
-        working_dir = None
+        if show_welcome:
+            self.console.print()
+            self.ui.logo(ASCII_ART)
+            self.ui.help()
+
         while not working_dir:
             try:
                 self.console.print()
-                working_dir = Prompt.ask(
-                    "[blue]  Please provide the working directory",
-                    console=self.console,
+                working_dir = self.ui.get_input(
+                    message="Please provide the working directory",
+                    default=os.getcwd(),
+                    show_choices=False,
                 )
                 os.makedirs(working_dir, exist_ok=True)
             except Exception:
@@ -77,8 +85,8 @@ class CodeGenUnit:
                 working_dir = None
 
         self.console.print()
-        user_input = Prompt.ask(
-            "[blue]  What cool ideas do you have for me today? ", console=self.console
+        user_input = self.ui.get_input(
+            message="✨ What cool ideas do you have for me today?",
         ).strip()
 
         prompts_dir = Path(__file__).resolve().parents[2]
@@ -136,13 +144,11 @@ class CodeGenUnit:
             self.console.print(md)
 
         self.console.print()
-        usr_answer = (
-            Prompt.ask(
-                "[blue]  Would you like to add additional context before beginning code generation? (y/n) ",
-                console=self.console,
-            )
-            .strip()
-            .lower()
+        usr_answer = self.ui.get_input(
+            message="[blue]  Would you like to add additional context before beginning code generation? (y/n) ",
+            default="y",
+            choices=["y", "n"],
+            show_choices=True,
         )
 
         if usr_answer in ["yes", "y", "yeah"]:

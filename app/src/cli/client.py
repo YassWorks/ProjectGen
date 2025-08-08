@@ -3,8 +3,10 @@ from app.src.agents.web_searcher.web_searcher import WebSearcherAgent
 from app.src.agents.code_gen.code_gen import CodeGenAgent
 from app.src.orchestration.orchestrated_codegen import CodeGenUnit
 from app.src.config.ui import AgentUI
+from app.utils.ascii_art import ASCII_ART
 from app.utils.constants import CONSOLE_WIDTH
 from rich.console import Console
+import os
 
 
 class CLI:
@@ -52,20 +54,66 @@ class CLI:
         self.codegen_temperature = codegen_temperature
         self.brainstormer_temperature = brainstormer_temperature
         self.web_searcher_temperature = web_searcher_temperature
-        
+
         self.codegen_system_prompt = codegen_system_prompt
         self.brainstormer_system_prompt = brainstormer_system_prompt
         self.web_searcher_system_prompt = web_searcher_system_prompt
 
     def start_chat(self):
-        if self.mode != "coding":
-            # handle non coding mode later
-            ...
+        
+        self.console.print()
+        self.ui.logo(ASCII_ART)
+        self.ui.help()
+        
+        try:
+            active_dir = os.getcwd()
+            self.ui.status_message(
+                title="Current Directory",
+                message=f"You are currently inside [green]{active_dir}[/green]",
+            )
 
-        self._initialize_coding_agents()
-        self._initialize_units()
+            cwd_change = self.ui.get_input(
+                message="Do you wish to change the active directory?",
+                default="n",
+                choices=["y", "n"],
+                show_choices=True,
+            )
+            if cwd_change == "y":
+                working_dir = None
+                while not working_dir:
+                    try:
+                        self.console.print()
+                        working_dir = self.ui.get_input(
+                            message="Please provide the working directory",
+                            default=active_dir,
+                        )
+                        os.makedirs(working_dir, exist_ok=True)
+                    except Exception:
+                        self.ui.error(
+                            "An error occurred while creating the project directory. Please try again"
+                        )
+                        working_dir = None
+                active_dir = working_dir
+                self.ui.status_message(
+                    title="Current Directory",
+                    message=f"You are currently inside [green]{active_dir}[/green]",
+                )
 
-        self.codegen_unit.run(config=self.config, stream=self.stream)
+            if self.mode != "coding":
+                # handle non coding mode later
+                return
+
+            self._initialize_coding_agents()
+            self._initialize_units()
+
+            self.codegen_unit.run(
+                config=self.config,
+                stream=self.stream,
+                show_welcome=False,
+                working_dir=active_dir,
+            )
+        except KeyboardInterrupt:
+            self.ui.goodbye()
 
     def _initialize_coding_agents(self):
         try:

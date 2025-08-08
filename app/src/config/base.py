@@ -5,7 +5,6 @@ from typing import Union, Callable
 from langgraph.graph import StateGraph
 from app.src.config.ui import AgentUI
 from rich.console import Console
-from rich.prompt import Prompt
 import uuid
 import os
 import langgraph
@@ -14,10 +13,10 @@ import openai
 
 class BaseAgent:
     """Base class for all agent implementations.
-    
+
     Provides common functionality including chat interface, model management,
     and message handling for agent interactions.
-    
+
     Args:
         model_name: LLM model identifier
         api_key: API key for model provider
@@ -52,11 +51,13 @@ class BaseAgent:
         self.temperature = temperature
         self.graph = graph
 
-    def start_chat(self, recursion_limit: int = 100, config: dict = None, show_welcome: bool = True):
+    def start_chat(
+        self, recursion_limit: int = 100, config: dict = None, show_welcome: bool = True
+    ):
         """Start interactive chat session with the agent.
-        
+
         Args:
-            recursion_limit: Maximum recursion depth for agent operations  
+            recursion_limit: Maximum recursion depth for agent operations
             config: Optional configuration dictionary
             show_welcome: Whether to display welcome message and logo
         """
@@ -64,10 +65,14 @@ class BaseAgent:
             self.ui.logo(ASCII_ART)
             self.ui.help(self.model_name)
 
-        configuration = {
-            "configurable": {"thread_id": str(uuid.uuid4())},
-            "recursion_limit": recursion_limit,
-        } if config is None else config
+        configuration = (
+            {
+                "configurable": {"thread_id": str(uuid.uuid4())},
+                "recursion_limit": recursion_limit,
+            }
+            if config is None
+            else config
+        )
 
         continue_flag = False
 
@@ -84,8 +89,8 @@ class BaseAgent:
                     )
                     continue_flag = False
                 else:
-                    user_input = Prompt.ask(
-                        "\n[bold blue]You[/bold blue]", console=self.console
+                    user_input = self.ui.get_input(
+                        message="\n[bold blue]You[/bold blue]",
                     ).strip()
 
                 if user_input.lower() in ["/quit", "/exit", "/q"]:
@@ -158,10 +163,10 @@ class BaseAgent:
                 break
             except langgraph.errors.GraphRecursionError:
                 self.ui.recursion_warning()
-                cont = Prompt.ask(
-                    "\n[bold blue]Continue? (y/n): [/bold blue]", console=self.console
-                ).strip()
-                if cont.lower() in ["y", "yes", "yeah"]:
+                cont = self.ui.get_input(
+                    message="\n[bold blue]Continue? (y/n): [/bold blue]"
+                )
+                if cont == "y":
                     continue_flag = True
             except openai.RateLimitError:
                 self.ui.status_message(
@@ -186,7 +191,7 @@ class BaseAgent:
         quiet: bool = False,
     ):
         """Invoke agent with a message and return response.
-        
+
         Args:
             message: Input message for the agent
             recursion_limit: Maximum recursion depth
@@ -196,7 +201,7 @@ class BaseAgent:
             stream: Whether to stream response chunks
             intermediary_chunks: Whether to show intermediate processing
             quiet: Whether to suppress UI output
-            
+
         Returns:
             Agent response as string
         """

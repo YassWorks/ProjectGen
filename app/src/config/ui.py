@@ -2,7 +2,8 @@ import traceback
 from rich.console import Console
 from rich.text import Text
 from rich.markdown import Markdown
-from typing import Dict, Any
+from rich.prompt import Prompt
+from typing import Dict, Any, Optional, List
 from time import sleep
 
 
@@ -28,14 +29,16 @@ class AgentUI:
         self.console.print()
         self.console.print("   Type your message and press Enter to chat")
         self.console.print(
-            "   Type [bold]'quit'[/bold], [bold]'exit'[/bold], or [bold]'q'[/bold] to end the conversation"
+            "   Type [bold]'/quit'[/bold], [bold]'/exit'[/bold], or [bold]'/q'[/bold] to end the conversation"
         )
-        self.console.print("   Type [bold]'clear'[/bold] to clear conversation history")
+        self.console.print("   Type [bold]'/clear'[/bold] to clear conversation history*")
         self.console.print(
-            "   Type [bold]'cls'[/bold], [bold]'clearterm'[/bold], or [bold]'clearscreen'[/bold] to clear terminal"
+            "   Type [bold]'/cls'[/bold], [bold]'/clearterm'[/bold], or [bold]'/clearscreen'[/bold] to clear terminal"
         )
         if model_name:
             self.console.print(f"   Current model: [bold green]{model_name}[/bold green]")
+        self.console.print()
+        self.console.print("[dim][italic] *note: this is unrecommended during running tasks.[/italic][/dim]")
         self.console.print("━" * 50, style="yellow")
 
     def simulate_thinking(self):
@@ -133,8 +136,43 @@ class AgentUI:
         self.console.print("━" * 38, style=style)
         self.console.print(f"  [{style}]{title}[/{style}]")
         emoji_str = f"{emoji} " if emoji else ""
-        self.console.print(f"  {emoji_str}[dim]{message}[/dim]")
+        self.console.print(f"  {emoji_str}{message}")
         self.console.print()
+
+    def get_input(
+        self,
+        message: str,
+        default: Optional[str] = None,
+        password: bool = False,
+        choices: Optional[List[str]] = None,
+        show_choices: bool = False,
+    ) -> str:
+        """Prompt the user for input using rich.Prompt.
+
+        Args:
+            message: The prompt message to display.
+            default: Optional default value if the user presses Enter.
+            password: If True, mask the input (e.g., for secrets).
+            choices: Optional list of allowed values; if provided, input is validated.
+            show_choices: Whether to display the choices inline in the prompt.
+
+        Returns:
+            The user's input as a string (or default/empty string on error).
+        """
+        try:
+            kwargs: Dict[str, Any] = {"console": self.console}
+            if default is not None:
+                kwargs["default"] = default
+            if password:
+                kwargs["password"] = True
+            if choices:
+                kwargs["choices"] = choices
+                kwargs["show_choices"] = show_choices
+            return Prompt.ask(f"[blue]  {message}", **kwargs)
+        except Exception as e:
+            # Surface the error in a consistent UI and fall back to a safe value
+            self.error(str(e))
+            return default or ""
 
     def goodbye(self):
         """Display goodbye message."""
@@ -183,3 +221,12 @@ class AgentUI:
     def dev_traceback(self):
         """Display traceback for development purposes."""
         traceback.print_exc(file=self.console.file)
+        
+# tst = AgentUI(Console(width=100))
+# i = tst.get_input(
+#     message="What is your name?",
+#     default="John Doe",
+#     choices=["ahmed", "3omar"],
+#     show_choices=True
+# )
+# print(i)
