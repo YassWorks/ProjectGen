@@ -7,6 +7,10 @@ from app.utils.ascii_art import ASCII_ART
 from app.utils.constants import CONSOLE_WIDTH
 from rich.console import Console
 import os
+import signal
+import sys
+import time
+import threading
 
 
 class CLI:
@@ -58,8 +62,15 @@ class CLI:
         self.codegen_system_prompt = codegen_system_prompt
         self.brainstormer_system_prompt = brainstormer_system_prompt
         self.web_searcher_system_prompt = web_searcher_system_prompt
+        
+        # utils
+        self.last_ctrl_c_time = 0
+        self.first_press_message = None
+        self.message_timer = None
 
     def start_chat(self):
+        
+        signal.signal(signal.SIGINT, self.handle_ctrl_c)
         
         self.console.print()
         self.ui.logo(ASCII_ART)
@@ -112,7 +123,7 @@ class CLI:
                 show_welcome=False,
                 working_dir=active_dir,
             )
-        except KeyboardInterrupt:
+        except SystemExit:
             self.ui.goodbye()
 
     def _initialize_coding_agents(self):
@@ -153,3 +164,27 @@ class CLI:
             )
         except Exception as e:
             self.ui.error(error_msg=f"Failed to initialize code generation unit: {e}")
+
+    def clear_message(self):
+        self.first_press_message = None
+
+    def handle_ctrl_c(self, signum, frame):
+
+        now = time.time()
+
+        if now - self.last_ctrl_c_time < 3:  # Second press within 3 seconds
+            print("\n\nGoodbye 👋")
+            sys.exit(0)
+        else:
+            # First press
+            self.last_ctrl_c_time = now
+            if not self.first_press_message:
+                self.first_press_message = "[Press Ctrl+C again within 3s to exit]"
+                # Print message at bottom without breaking current output
+                sys.stdout.write("\n" + self.first_press_message)
+                sys.stdout.flush()
+                # Schedule message removal
+                if self.message_timer and self.message_timer.is_alive():
+                    self.message_timer.cancel()
+                self.message_timer = threading.Timer(3, self.clear_message)
+                self.message_timer.start()
