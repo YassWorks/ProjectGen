@@ -6,11 +6,10 @@ from app.src.config.ui import AgentUI
 from app.utils.ascii_art import ASCII_ART
 from app.utils.constants import CONSOLE_WIDTH
 from rich.console import Console
-import os
 import signal
-import sys
 import time
-import threading
+import sys
+import os
 
 
 class CLI:
@@ -64,19 +63,17 @@ class CLI:
         self.web_searcher_system_prompt = web_searcher_system_prompt
         
         # utils
-        self.last_ctrl_c_time = 0
-        self.first_press_message = None
-        self.message_timer = None
+        self._last_ctrl_c_time = time.time()
+        self._exit_time_interval = 3  # seconds
 
     def start_chat(self):
         
-        signal.signal(signal.SIGINT, self.handle_ctrl_c)
-        
-        self.console.print()
         self.ui.logo(ASCII_ART)
         self.ui.help()
         
         try:
+            signal.signal(signal.SIGINT, self._handle_ctrl_c)
+            
             active_dir = os.getcwd()
             self.ui.status_message(
                 title="Current Directory",
@@ -124,7 +121,7 @@ class CLI:
                 working_dir=active_dir,
             )
         except SystemExit:
-            self.ui.goodbye()
+            pass
 
     def _initialize_coding_agents(self):
         try:
@@ -165,26 +162,14 @@ class CLI:
         except Exception as e:
             self.ui.error(error_msg=f"Failed to initialize code generation unit: {e}")
 
-    def clear_message(self):
-        self.first_press_message = None
-
-    def handle_ctrl_c(self, signum, frame):
-
+    def _handle_ctrl_c(self, signum, frame):
         now = time.time()
-
-        if now - self.last_ctrl_c_time < 3:  # Second press within 3 seconds
-            print("\n\nGoodbye 👋")
+        if now - self._last_ctrl_c_time < self._exit_time_interval:
+            self.ui.goodbye()
             sys.exit(0)
         else:
-            # First press
-            self.last_ctrl_c_time = now
-            if not self.first_press_message:
-                self.first_press_message = "[Press Ctrl+C again within 3s to exit]"
-                # Print message at bottom without breaking current output
-                sys.stdout.write("\n" + self.first_press_message)
-                sys.stdout.flush()
-                # Schedule message removal
-                if self.message_timer and self.message_timer.is_alive():
-                    self.message_timer.cancel()
-                self.message_timer = threading.Timer(3, self.clear_message)
-                self.message_timer.start()
+            self._last_ctrl_c_time = now
+            self.ui.status_message(
+                title="Second Ctrl+C Pressed",
+                message="Press Ctrl+C again within 3 seconds to exit."
+            )
