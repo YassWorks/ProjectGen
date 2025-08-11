@@ -83,14 +83,17 @@ class BaseAgent:
                     user_input = (
                         "Continue where you left. Don't repeat anything already done."
                     )
-                    self.console.print(
-                        f"\n[bold blue]You[/bold blue]: {user_input}",
-                        style="blue",
+                    self.ui.status_message(
+                        title="Continuing Session",
+                        message="Resuming from previous context...",
+                        emoji="🔄",
+                        style="primary",
                     )
                     continue_flag = False
                 else:
                     user_input = self.ui.get_input(
-                        message="\n[bold blue]You[/bold blue]",
+                        message="Your message",
+                        model=self.model_name,
                     ).strip()
 
                 if user_input.lower() in ["/quit", "/exit", "/q"]:
@@ -149,9 +152,8 @@ class BaseAgent:
                     self.ui.error("Unknown command. Type /help for instructions.")
                     continue
 
-                self.ui.simulate_thinking()
+                self.ui.tmp_msg("Working on the task...", 2)
 
-                # start response streaming
                 for chunk in self.agent.stream(
                     {"messages": [("human", user_input)]}, configuration
                 ):
@@ -163,10 +165,7 @@ class BaseAgent:
                 break
             except langgraph.errors.GraphRecursionError:
                 self.ui.recursion_warning()
-                cont = self.ui.get_input(
-                    message="\n[bold blue]Continue? (y/n): [/bold blue]"
-                )
-                if cont == "y":
+                if self.ui.confirm("Continue?", default=True):
                     continue_flag = True
             except openai.RateLimitError:
                 self.ui.status_message(
@@ -177,7 +176,6 @@ class BaseAgent:
                 )
             except Exception as e:
                 self.ui.error(str(e))
-                self.ui.dev_traceback()  # dev (remove later)
 
     def invoke(
         self,

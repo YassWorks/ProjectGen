@@ -1,143 +1,132 @@
-import traceback
+import os
 from rich.console import Console
-from rich.text import Text
 from rich.markdown import Markdown
-from rich.prompt import Prompt
+from rich.prompt import Prompt, Confirm
+from rich.panel import Panel
+from rich.text import Text
 from typing import Dict, Any, Optional, List
-from time import sleep
+from app.utils.constants import THEME
+import time
 
 
 class AgentUI:
-    """Handles all UI rendering for the agent interface."""
-
     def __init__(self, console: Console):
         self.console = console
 
+    def _style(self, color_key: str) -> str:
+        return THEME.get(color_key, THEME["text"])
+
     def logo(self, ascii_art: str):
-        """Display ASCII art logo."""
-        tmp = self.console  # because I am using max width in the console
-        self.console = Console()
-        ascii_text = Text(ascii_art)
-        ascii_text.stylize("bold magenta", 0, len(ascii_art))
-        self.console.print(ascii_text)
-        self.console = tmp
+        self.console.print()
+        lines = ascii_art.split("\n")
+        for i, line in enumerate(lines):
+            progress = i / max(len(lines) - 1, 1)
+            red = int(139 + (239 - 139) * progress)
+            green = int(92 + (68 - 92) * progress)
+            blue = int(246 + (68 - 246) * progress)
+
+            color = f"#{red:02x}{green:02x}{blue:02x}"
+            text = Text(line, style=f"bold {color}")
+            self.console.print(text, justify="center")
 
     def help(self, model_name: str = None):
-        """Display help instructions and current model."""
-        self.console.print("━" * 50, style="yellow")
-        self.console.print("[bold yellow] Instructions[/bold yellow]")
         self.console.print()
-        self.console.print("   Type your message and press Enter to chat")
-        self.console.print(
-            "   Type [bold]'/quit'[/bold], [bold]'/exit'[/bold], or [bold]'/q'[/bold] to end the conversation"
-        )
-        self.console.print("   Type [bold]'/clear'[/bold] to clear conversation history*")
-        self.console.print(
-            "   Type [bold]'/cls'[/bold], [bold]'/clearterm'[/bold], or [bold]'/clearscreen'[/bold] to clear terminal"
-        )
-        if model_name:
-            self.console.print(f"   Current model: [bold green]{model_name}[/bold green]")
-        self.console.print()
-        self.console.print("[dim][italic] *note: this is unrecommended during running tasks.[/italic][/dim]")
-        self.console.print("━" * 50, style="yellow")
+        help_content = []
+        help_content.append("Chat with your AI assistant")
+        help_content.append("")
+        help_content.append("Commands:")
+        help_content.append("  /quit, /exit, /q  → Exit")
+        help_content.append("  /clear            → Clear history")
+        help_content.append("  /cls              → Clear screen")
 
-    def simulate_thinking(self):
-        """Show a thinking animation"""
-        self.console.print()
-        with self.console.status("[bold green]🧠 AI is thinking...", spinner="dots"):
-            sleep(2)
+        if model_name:
+            help_content.append("")
+            help_content.append(f"Model: [bold]{model_name}[/bold]")
+
+        panel = Panel(
+            "\n".join(help_content),
+            title="[bold]Help[/bold]",
+            border_style=self._style("muted"),
+            padding=(1, 2),
+        )
+        self.console.print(panel)
 
     def tool_call(self, tool_name: str, args: Dict[str, Any]):
-        """Display tool call information."""
         self.console.print()
-        self.console.print("━" * 42, style="green")
-        self.console.print(
-            f"  ⚡ [bold green]{tool_name}[/bold green] [dim green]• executing[/dim green]"
+
+        tool_name = f"## {tool_name}"
+        content_parts = [tool_name]
+        if args:
+            content_parts.append("\n**Arguments:**")
+            for k, v in args.items():
+
+                value_str = str(v)
+                if len(value_str) > 100 or "\n" in value_str:
+                    content_parts.append(
+                        f"- **{k}:**\n```\n{value_str[:500]}{'...' if len(value_str) > 500 else ''}\n```"
+                    )
+                else:
+                    content_parts.append(f"- **{k}:** `{value_str}`")
+
+        markdown_content = "\n".join(content_parts)
+
+        try:
+            rendered_content = Markdown(markdown_content)
+        except:
+            rendered_content = markdown_content
+
+        panel = Panel(
+            rendered_content,
+            title="[bold]Tool Executing[/bold]",
+            border_style=self._style("accent"),
+            padding=(1, 2),
         )
-        self.console.print("━" * 42, style="dim green")
-
-        for k, v in args.items():
-            value_str = str(v)
-
-            # Handle long content
-            if len(value_str) > 200:
-                # Show first 150 characters and add ellipsis
-                value_str = value_str[:150] + "..."
-
-            self.console.print(f"  [cyan]{k}[/cyan] [dim]→[/dim]")
-
-            # Try to render as markdown if it looks like code or markdown
-            if "```" in value_str or "\n" in value_str:
-                try:
-                    markdown_content = Markdown(value_str)
-                    self.console.print(markdown_content)
-                except:
-                    self.console.print(f"    {value_str}")
-            else:
-                self.console.print(f"    {value_str}")
+        self.console.print(panel)
 
     def tool_output(self, tool_name: str, content: str):
-        """Display tool execution output."""
-        output_content = content.strip()
-        if output_content.startswith("Output:\n"):
-            output_content = output_content[8:]
-
-        self.console.print("━" * 42, style="cyan")
-        self.console.print(
-            f"  📤 [bold cyan]{tool_name}[/bold cyan] [dim cyan]• completed[/dim cyan]"
-        )
-        self.console.print("━" * 42, style="dim cyan")
-
-        # Handle very long output
-        if len(output_content) > 1000:
-            # Show first 800 characters and add ellipsis
-            output_content = (
-                output_content[:800] + "\n\n[dim cyan]... (output truncated)[/dim cyan]"
-            )
-
-        # Try to render as markdown if it looks like code or markdown
-        if "```" in output_content or "#" in output_content or "*" in output_content:
-            try:
-                markdown_content = Markdown(output_content)
-                self.console.print(markdown_content)
-            except:
-                self.console.print(output_content)
-        else:
-            self.console.print(output_content)
         self.console.print()
+
+        tool_name = f"{tool_name}"
+        if len(content) > 1000:
+            content = content[:1000] + "\n... *(truncated)*"
+
+        markdown_content = f"**Output:**\n```\n{content}\n```"
+
+        try:
+            rendered_content = Markdown(markdown_content)
+        except:
+            rendered_content = markdown_content
+
+        self.console.print(f"[{self._style("secondary")}]Tool Complete: {tool_name}[/{self._style("secondary")}]")
+        self.console.print(rendered_content)
 
     def ai_response(self, content: str):
-        """Display AI response with markdown support."""
         self.console.print()
-        self.console.print("━" * 52, style="green")
-        self.console.print(
-            "  🤖 [bold green]AI Assistant[/bold green] [dim green]• responding[/dim green]"
+        try:
+            rendered_content = Markdown(content)
+        except:
+            rendered_content = content
+
+        panel = Panel(
+            rendered_content,
+            title="[bold]Assistant[/bold]",
+            border_style=self._style("primary"),
+            padding=(1, 2),
         )
-        self.console.print("━" * 52, style="green")
-        self.console.print()
-
-        if "```" in content or "#" in content or "*" in content:
-            try:
-                ai_content = Markdown(content)
-            except:
-                ai_content = content
-        else:
-            ai_content = content
-
-        self.console.print(ai_content)
-        self.console.print()
-        self.console.print()
+        self.console.print(panel)
 
     def status_message(
-        self, title: str, message: str, emoji: str = None, style: str = "blue"
+        self, title: str, message: str, emoji: str = None, style: str = "primary"
     ):
-        """Display a status message with consistent formatting."""
         self.console.print()
-        self.console.print("━" * 38, style=style)
-        self.console.print(f"  [{style}]{title}[/{style}]")
-        emoji_str = f"{emoji} " if emoji else ""
-        self.console.print(f"  {emoji_str}{message}")
-        self.console.print()
+        content = f"{emoji + ' ' if emoji else ''}{message}"
+        panel = Panel(
+            content,
+            title=f"[bold]{title}[/bold]",
+            border_style=self._style(style),
+            padding=(0, 1),
+        )
+        self.console.print(panel)
 
     def get_input(
         self,
@@ -146,87 +135,106 @@ class AgentUI:
         password: bool = False,
         choices: Optional[List[str]] = None,
         show_choices: bool = False,
+        cwd: Optional[str] = None,
+        model: Optional[str] = None,
     ) -> str:
-        """Prompt the user for input using rich.Prompt.
-
-        Args:
-            message: The prompt message to display.
-            default: Optional default value if the user presses Enter.
-            password: If True, mask the input (e.g., for secrets).
-            choices: Optional list of allowed values; if provided, input is validated.
-            show_choices: Whether to display the choices inline in the prompt.
-
-        Returns:
-            The user's input as a string (or default/empty string on error).
-        """
+        self.console.print()
         try:
-            kwargs: Dict[str, Any] = {"console": self.console}
+            info_parts = []
+            if cwd:
+                info_parts.append(f"[dim]📁 {os.path.basename(cwd)}[/dim]")
+            if model:
+                info_parts.append(f"[dim]🤖 {model}[/dim]")
+
+            info_line = " • ".join(info_parts) if info_parts else ""
+
+            prompt_content = message
+            if default:
+                prompt_content += f" [dim](default: {default})[/dim]"
+            if choices and show_choices:
+                prompt_content += f" [dim]({'/'.join(choices)})[/dim]"
+
+            if info_line:
+                prompt_content += f"\n{info_line}"
+
+            panel = Panel(
+                prompt_content, border_style=self._style("border"), padding=(0, 1)
+            )
+            self.console.print(panel)
+
+            kwargs = {"console": self.console, "show_default": False}
             if default is not None:
                 kwargs["default"] = default
             if password:
                 kwargs["password"] = True
             if choices:
                 kwargs["choices"] = choices
-                kwargs["show_choices"] = show_choices
-            return Prompt.ask(f"[blue]  {message}", **kwargs)
+
+            return Prompt.ask(">>", **kwargs)
         except Exception as e:
-            # Surface the error in a consistent UI and fall back to a safe value
             self.error(str(e))
             return default or ""
 
+    def confirm(self, message: str, default: bool = True) -> bool:
+        self.console.print()
+        try:
+            panel = Panel(message, border_style=self._style("warning"), padding=(0, 1))
+            self.console.print(panel)
+            return Confirm.ask(
+                ">>", default=default, console=self.console, show_default=False
+            )
+        except:
+            return default
+
     def goodbye(self):
-        """Display goodbye message."""
+        self.console.print()
         self.status_message(
-            emoji="👋", title="🚪 Goodbye!", message="Thanks for using the AI Assistant!", style="bright_blue"
+            title="Goodbye",
+            message="Thanks for using the assistant!",
+            emoji="👋",
+            style="primary",
         )
 
     def history_cleared(self):
-        """Display history cleared message."""
+        self.console.print()
         self.status_message(
+            title="History Cleared",
+            message="Conversation history cleared",
             emoji="✨",
-            title="🧹 History Cleared",
-            message="Conversation history has been cleared!",
-            style="green",
+            style="success",
         )
 
     def session_interrupted(self):
-        """Display session interrupted message."""
-        self.status_message(emoji="🛑", title="⚠️ Session Interrupted", message="Interrupted by user", style="red")
+        self.console.print()
+        self.status_message(
+            title="Interrupted",
+            message="Session stopped by user",
+            emoji="⏹️",
+            style="warning",
+        )
 
     def recursion_warning(self):
-        """Display recursion warning with user prompt."""
         self.console.print()
-        self.console.print("━" * 45, style="bold yellow")
-        self.console.print(
-            "  [bold yellow]⚠️  Agent Running Extended Session[/bold yellow]"
+        content = (
+            "Agent has been processing for a while.\nContinue or refine your prompt?"
         )
-        self.console.print("━" * 45, style="dim yellow")
-        self.console.print()
-        self.console.print("  [dim]The agent has been processing for a while.[/dim]")
-        self.console.print(
-            "  Would you like to [bold]continue[/bold] or [bold cyan]refine your prompt[/bold cyan]?"
+        panel = Panel(
+            content,
+            title="[bold]Extended Session[/bold]",
+            border_style=self._style("warning"),
+            padding=(1, 2),
         )
-        self.console.print()
-        self.console.print()
+        self.console.print(panel)
 
     def error(self, error_msg: str):
-        """Display error message."""
+        self.console.print()
         self.status_message(
-            title="⚠️ Error Occurred",
-            message=f"Error: {error_msg}\n[dim]Please try again...",
+            title="Error",
+            message=f"{error_msg}\nPlease try again",
             emoji="❌",
-            style="red",
+            style="error",
         )
 
-    def dev_traceback(self):
-        """Display traceback for development purposes."""
-        traceback.print_exc(file=self.console.file)
-        
-# tst = AgentUI(Console(width=100))
-# i = tst.get_input(
-#     message="What is your name?",
-#     default="John Doe",
-#     choices=["ahmed", "3omar"],
-#     show_choices=True
-# )
-# print(i)
+    def tmp_msg(self, message: str, duration: int = 2):
+        with self.console.status(message):
+            time.sleep(duration)

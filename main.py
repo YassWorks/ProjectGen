@@ -5,9 +5,9 @@ import os
 load_dotenv()
 llm_api_key = os.getenv("CEREBRAS_API_KEY")
 
-bs_model_name = "qwen-3-235b-a22b-thinking-2507"
-ws_model_name = "qwen-3-235b-a22b-thinking-2507"
-codegen_model_name = "qwen-3-coder-480b"
+bs_model_name = "qwen-3-235b-a22b-instruct-2507"
+ws_model_name = "qwen-3-235b-a22b-instruct-2507"
+codegen_model_name = "qwen-3-235b-a22b-instruct-2507"
 
 client = CLI(
     mode="coding",

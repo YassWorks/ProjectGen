@@ -60,7 +60,6 @@ class CLI:
         self.web_searcher_system_prompt = web_searcher_system_prompt
 
     def start_chat(self):
-
         self.ui.logo(ASCII_ART)
         self.ui.help()
 
@@ -68,34 +67,30 @@ class CLI:
             active_dir = os.getcwd()
             self.ui.status_message(
                 title="Current Directory",
-                message=f"You are currently inside [green]{active_dir}[/green]",
+                message=f"Working in {active_dir}",
+                emoji="📁",
+                style="primary"
             )
 
-            cwd_change = self.ui.get_input(
-                message="Do you wish to change the active directory?",
-                default="n",
-                choices=["y", "n"],
-                show_choices=True,
-            )
-            if cwd_change == "y":
+            if self.ui.confirm("Change working directory?", default=False):
                 working_dir = None
                 while not working_dir:
                     try:
-                        self.console.print()
                         working_dir = self.ui.get_input(
-                            message="Please provide the working directory",
+                            message="Enter working directory",
                             default=active_dir,
+                            cwd=active_dir
                         )
                         os.makedirs(working_dir, exist_ok=True)
                     except Exception:
-                        self.ui.error(
-                            "An error occurred while creating the project directory. Please try again"
-                        )
+                        self.ui.error("Failed to create directory")
                         working_dir = None
                 active_dir = working_dir
                 self.ui.status_message(
-                    title="Current Directory",
-                    message=f"You are currently inside [green]{active_dir}[/green]",
+                    title="Directory Updated",
+                    message=f"Now working in {os.path.basename(active_dir)}",
+                    emoji="📁",
+                    style="success"
                 )
 
             if self.mode != "coding":

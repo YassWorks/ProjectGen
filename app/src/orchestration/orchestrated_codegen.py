@@ -2,13 +2,12 @@ from app.src.agents.code_gen.code_gen import CodeGenAgent
 from app.src.agents.web_searcher.web_searcher import WebSearcherAgent
 from app.src.agents.brainstormer.brainstormer import BrainstormerAgent
 from app.src.orchestration.integrate_web_search import integrate_web_search
+from app.utils.constants import CONSOLE_WIDTH
 from app.utils.ascii_art import ASCII_ART
 from app.src.config.ui import AgentUI
 from pathlib import Path
-import os
-from rich.markdown import Markdown
 from rich.console import Console
-from time import sleep
+import os
 
 
 class CodeGenUnit:
@@ -33,7 +32,7 @@ class CodeGenUnit:
         self.code_gen_agent = code_gen_agent
         self.web_searcher_agent = web_searcher_agent
         self.brainstormer_agent = brainstormer_agent
-        self.console = Console(width=100)
+        self.console = Console(width=CONSOLE_WIDTH)
         self.ui = AgentUI(self.console)
 
     def _enhance_agents(self):
@@ -65,28 +64,25 @@ class CodeGenUnit:
         self._enhance_agents()
 
         if show_welcome:
-            self.console.print()
             self.ui.logo(ASCII_ART)
             self.ui.help()
 
         while not working_dir:
             try:
-                self.console.print()
                 working_dir = self.ui.get_input(
-                    message="Please provide the working directory",
+                    message="Enter project directory",
                     default=os.getcwd(),
-                    show_choices=False,
+                    cwd=os.getcwd(),
                 )
                 os.makedirs(working_dir, exist_ok=True)
             except Exception:
-                self.ui.error(
-                    "An error occurred while creating the project directory. Please try again"
-                )
+                self.ui.error("Failed to create project directory")
                 working_dir = None
 
-        self.console.print()
         user_input = self.ui.get_input(
-            message="✨ What cool ideas do you have for me today?",
+            message="What would you like to build?",
+            cwd=working_dir,
+            model=getattr(self.code_gen_agent, "model_name", "AI"),
         ).strip()
 
         prompts_dir = Path(__file__).resolve().parents[2]
@@ -110,11 +106,9 @@ class CodeGenUnit:
             else config
         )
 
-        # Creating the context space for the code_gen agent
-        self.console.print()
         if not stream:
             with self.console.status(
-                "[bold green]🧠 Brainstormer Agent is analyzing your request...",
+                "[bold]Analyzing request...",
                 spinner="dots",
             ):
                 bs_results = self.brainstormer_agent.invoke(
@@ -132,34 +126,30 @@ class CodeGenUnit:
             )
 
         self.ui.status_message(
-            title="Context Engineering steps done!",
-            message=f"You can always check the files generated at the following path: {working_dir}",
+            title="Context Engineering Complete",
+            message=f"Files generated at {os.path.basename(working_dir)}",
             emoji="📝",
-            style="bold green",
+            style="success",
         )
 
         if "[ERROR]" not in bs_results and not stream:
-            self.console.print("[bold green]  Final Brainstormer Agent message:")
-            md = Markdown(bs_results)
-            self.console.print(md)
+            self.ui.ai_response(bs_results)
 
-        self.console.print()
         usr_answer = self.ui.get_input(
-            message="[blue]  Would you like to add additional context before beginning code generation? (y/n) ",
+            message="Add more context before code generation?",
             default="y",
             choices=["y", "n"],
             show_choices=True,
+            cwd=working_dir,
+            model=getattr(self.brainstormer_agent, "model_name", "Brainstormer"),
         )
 
         if usr_answer in ["yes", "y", "yeah"]:
-            self.console.print()
-            with self.console.status(
-                "[bold green]  Starting conversation with the Brainstormer Agent...",
-                spinner="dots",
-            ):
-                sleep(1)
-            self.console.print(
-                "[bold green]  You may exit anytime by typing '/exit', '/quit', '/q' or by pressing Ctrl+c [/bold green]"
+            self.ui.status_message(
+                title="Brainstormer Ready",
+                message="Type '/exit' or Ctrl+C to continue to code generation",
+                emoji="💭",
+                style="accent",
             )
 
             self.brainstormer_agent.start_chat(config=configuration, show_welcome=False)
@@ -188,10 +178,9 @@ class CodeGenUnit:
             "recursion_limit": recursion_limit,
         }
 
-        self.console.print()
         if not stream:
             with self.console.status(
-                "[bold green]⚡ CodeGen Agent is generating your project...",
+                "[bold]Generating project...",
                 spinner="dots",
             ):
                 codegen_results = self.code_gen_agent.invoke(
@@ -209,25 +198,20 @@ class CodeGenUnit:
             )
 
         self.ui.status_message(
-            title="Initial project generation done!",
-            message=f"You can always check the code generated at the following path: {working_dir}",
-            emoji="📝",
-            style="bold green",
+            title="Project Generation Complete",
+            message=f"Code generated at {os.path.basename(working_dir)}",
+            emoji="🎉",
+            style="success",
         )
 
         if "[ERROR]" not in codegen_results:
-            self.console.print("[bold green]  Final CodeGen Agent message:")
-            md = Markdown(codegen_results)
-            self.console.print(md)
+            self.ui.ai_response(codegen_results)
 
-        self.console.print()
-        with self.console.status(
-            "[bold green]  Starting conversation with the CodeGen Agent...",
-            spinner="dots",
-        ):
-            sleep(1)
-        self.console.print(
-            "[bold green]  You may exit anytime by typing '/exit', '/quit', '/q' or by pressing Ctrl+c [/bold green]"
+        self.ui.status_message(
+            title="CodeGen Ready",
+            message="Starting interactive session...",
+            emoji="⚡",
+            style="accent",
         )
 
         self.code_gen_agent.start_chat(config=configuration, show_welcome=False)
