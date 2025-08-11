@@ -96,7 +96,7 @@ class CLI:
                 active_dir = working_dir
                 self.ui.status_message(
                     title="Directory Updated",
-                    message=f"Now working in {os.path.basename(active_dir)}",
+                    message=f"Now working in {active_dir}",
                     emoji="📁",
                     style="success"
                 )

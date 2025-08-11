@@ -7,6 +7,13 @@ from rich.text import Text
 from typing import Dict, Any, Optional, List
 from app.utils.constants import THEME
 import time
+import sys
+
+if os.name == "nt":  # Windows
+    import msvcrt
+else:  # Unix/Linux/macOS
+    import tty
+    import termios
 
 
 class AgentUI:
@@ -97,7 +104,9 @@ class AgentUI:
         except:
             rendered_content = markdown_content
 
-        self.console.print(f"[{self._style("secondary")}]Tool Complete: {tool_name}[/{self._style("secondary")}]")
+        self.console.print(
+            f"[{self._style("secondary")}]Tool Complete: {tool_name}[/{self._style("secondary")}]"
+        )
         self.console.print(rendered_content)
 
     def ai_response(self, content: str):
@@ -185,6 +194,61 @@ class AgentUI:
             )
         except:
             return default
+        
+    def get_key(self):
+        """Read a single key press and return a string identifier."""
+        if os.name == "nt":
+            key = msvcrt.getch()
+            if key == b'\xe0':  # Special keys (arrows, F keys, etc.)
+                key = msvcrt.getch()
+                return {
+                    b'H': 'UP',
+                    b'P': 'DOWN',
+                }.get(key, None)
+            elif key in (b'\r', b'\n'):
+                return 'ENTER'
+        else:
+            fd = sys.stdin.fileno()
+            old_settings = termios.tcgetattr(fd)
+            try:
+                tty.setraw(fd)
+                ch1 = sys.stdin.read(1)
+                if ch1 == '\x1b':  # Escape sequence
+                    ch2 = sys.stdin.read(1)
+                    if ch2 == '[':
+                        ch3 = sys.stdin.read(1)
+                        return {
+                            'A': 'UP',
+                            'B': 'DOWN',
+                        }.get(ch3, None)
+                elif ch1 in ('\r', '\n'):
+                    return 'ENTER'
+            finally:
+                termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+        return None
+
+    def select_option(self, message: str, options: List[str]) -> str:
+        idx = 0
+        self.console.print(f"\n{message}")
+        for i, opt in enumerate(options):
+            prefix = "▶ " if i == idx else "  "
+            print(f"{prefix}{opt}")
+
+        while True:
+            key = self.get_key()
+            if key == 'UP' and idx > 0:
+                idx -= 1
+            elif key == 'DOWN' and idx < len(options) - 1:
+                idx += 1
+            elif key == 'ENTER':
+                return idx
+
+            # Move cursor up to menu start
+            sys.stdout.write(f"\033[{len(options)}A")
+            for i, opt in enumerate(options):
+                prefix = "▶ " if i == idx else "  "
+                sys.stdout.write(f"{prefix}{opt}\033[K\n")
+            sys.stdout.flush()
 
     def goodbye(self):
         self.console.print()

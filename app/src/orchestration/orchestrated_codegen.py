@@ -5,8 +5,8 @@ from app.src.orchestration.integrate_web_search import integrate_web_search
 from app.utils.constants import CONSOLE_WIDTH
 from app.utils.ascii_art import ASCII_ART
 from app.src.config.ui import AgentUI
-from pathlib import Path
 from rich.console import Console
+from pathlib import Path
 import os
 
 
@@ -127,7 +127,7 @@ class CodeGenUnit:
 
         self.ui.status_message(
             title="Context Engineering Complete",
-            message=f"Files generated at {os.path.basename(working_dir)}",
+            message=f"Files generated at {working_dir}",
             emoji="📝",
             style="success",
         )
@@ -199,7 +199,7 @@ class CodeGenUnit:
 
         self.ui.status_message(
             title="Project Generation Complete",
-            message=f"Code generated at {os.path.basename(working_dir)}",
+            message=f"Code generated at {working_dir}",
             emoji="🎉",
             style="success",
         )
