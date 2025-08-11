@@ -15,6 +15,12 @@ load_dotenv(dotenv_path=ENV_PATH)
 GGL_API_KEY = os.getenv("GOOGLE_SEARCH_API_KEY")
 CX_ID = os.getenv("SEARCH_ENGINE_ID")
 
+# Validate environment variables early
+if not GGL_API_KEY:
+    print("WARNING: GOOGLE_SEARCH_API_KEY not set in .env file. Web search functionality will be limited.")
+if not CX_ID:
+    print("WARNING: SEARCH_ENGINE_ID not set in .env file. Web search functionality will be limited.")
+
 
 ENDPOINT = "https://customsearch.googleapis.com/customsearch/v1"
 TIMEOUT = 10  # seconds
@@ -36,7 +42,10 @@ def google_search(query: str, n: int = 5) -> List[Dict[str, str]]:
     """
 
     if not GGL_API_KEY or not CX_ID:
-        raise ValueError("Google API key or Search Engine ID not set in .env")
+        raise ValueError(
+            "Google API key or Search Engine ID not set in .env file. "
+            "Please set GOOGLE_SEARCH_API_KEY and SEARCH_ENGINE_ID environment variables."
+        )
 
     results, start = [], 1
     while len(results) < n:
@@ -95,7 +104,7 @@ def fetch_page_text(url: str) -> str:
         return res
 
     except Exception as e:
-        return f"[Error scraping {url}]: {e}"
+        return f"[ERROR] Failed to scrape {url}: {str(e)}"
 
 
 @tool
@@ -106,15 +115,17 @@ def search_and_scrape(query: str) -> str:
     Args:
         query (str): The search query to use.
     """
+    try:
+        search_results = google_search(query, 5)
+        for r in search_results:
+            r["full_text"] = fetch_page_text(r["link"])
 
-    search_results = google_search(query, 5)
-    for r in search_results:
-        r["full_text"] = fetch_page_text(r["link"])
+        formatted_results = "This answer is possibly incomplete. Consider refining search terms if needed.\n\n"
+        # search_results has "title" and "full_text" keys. Let's structure it nicely for the agent:
+        for r in search_results:
+            formatted_results += f"Title: {r['title']}\n"
+            formatted_results += f"Content: {r['full_text']}\n\n"
 
-    formatted_results = "This answer is possibly incomplete. Consider refining search terms if needed.\n\n"
-    # search_results has "title" and "full_text" keys. Let's structure it nicely for the agent:
-    for r in search_results:
-        formatted_results += f"Title: {r['title']}\n"
-        formatted_results += f"Content: {r['full_text']}\n\n"
-
-    return formatted_results
+        return formatted_results
+    except Exception as e:
+        return f"[ERROR] Failed to perform web search: {str(e)}"

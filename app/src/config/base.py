@@ -248,7 +248,7 @@ class BaseAgent:
                 )
             return msg
         except openai.RateLimitError:
-            msg = "[ERROR] Please try again later or switch to a different model."
+            msg = "[ERROR] Rate limit exceeded. Please try again later or switch to a different model."
             if not quiet:
                 self.ui.status_message(
                     title="Rate Limit Exceeded",
@@ -257,9 +257,10 @@ class BaseAgent:
                 )
             return msg
         except Exception as e:
+            msg = f"[ERROR] Unexpected error occurred: {str(e)}"
             if not quiet:
-                self.ui.error(str(e))
-            return "[ERROR] Unexpected error occurred. Please try again."
+                self.ui.error(msg)
+            return msg
 
         if intermediary_chunks and not quiet:
             for chunk in raw_response.get("messages", []):

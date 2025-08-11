@@ -33,6 +33,14 @@ class CLI:
         """
         mode can be "coding" or "default" for now
         """
+        # Validate required parameters for coding mode
+        if mode == "coding":
+            if not api_key and not all([codegen_api_key, brainstormer_api_key, web_searcher_api_key]):
+                raise ValueError("API key must be provided either as 'api_key' or individual agent API keys")
+            
+            if not all([codegen_model_name, brainstormer_model_name, web_searcher_model_name]):
+                raise ValueError("Model names must be provided for all agents in coding mode")
+        
         self.mode = mode
         self.api_key = api_key
         self.stream = stream
@@ -112,6 +120,10 @@ class CLI:
             self.ui.error(error_msg=f"An unexpected error occurred: {e}")
 
     def _initialize_coding_agents(self):
+        self.codegen_agent = None
+        self.brainstormer_agent = None
+        self.web_searcher_agent = None
+        
         try:
             self.codegen_agent = CodeGenAgent(
                 model_name=self.codegen_model_name,
@@ -121,6 +133,8 @@ class CLI:
             )
         except Exception as e:
             self.ui.error(error_msg=f"Failed to initialize code generation agent: {e}")
+            raise RuntimeError(f"Critical agent initialization failed: {e}")
+            
         try:
             self.brainstormer_agent = BrainstormerAgent(
                 model_name=self.brainstormer_model_name,
@@ -130,6 +144,8 @@ class CLI:
             )
         except Exception as e:
             self.ui.error(error_msg=f"Failed to initialize brainstormer agent: {e}")
+            raise RuntimeError(f"Critical agent initialization failed: {e}")
+            
         try:
             self.web_searcher_agent = WebSearcherAgent(
                 model_name=self.web_searcher_model_name,
@@ -139,8 +155,15 @@ class CLI:
             )
         except Exception as e:
             self.ui.error(error_msg=f"Failed to initialize web searcher agent: {e}")
+            raise RuntimeError(f"Critical agent initialization failed: {e}")
 
     def _initialize_units(self):
+        # Validate that all required agents are initialized
+        if not all([self.codegen_agent, self.brainstormer_agent, self.web_searcher_agent]):
+            error_msg = "Cannot create CodeGenUnit: one or more agents failed to initialize"
+            self.ui.error(error_msg=error_msg)
+            raise RuntimeError(error_msg)
+            
         try:
             self.codegen_unit = CodeGenUnit(
                 code_gen_agent=self.codegen_agent,
@@ -149,3 +172,4 @@ class CLI:
             )
         except Exception as e:
             self.ui.error(error_msg=f"Failed to initialize code generation unit: {e}")
+            raise RuntimeError(f"Failed to initialize code generation unit: {e}")

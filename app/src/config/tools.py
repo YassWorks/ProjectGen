@@ -36,7 +36,7 @@ def create_wd(path: str) -> str:
         os.makedirs(path, exist_ok=True)
         return f"Working directory created at {path}"
     except Exception as e:
-        return f"Error creating working directory: {str(e)}"
+        return f"[ERROR] Failed to create working directory: {str(e)}"
 
 
 @tool
@@ -86,7 +86,7 @@ def create_file(file_path: str, content: str) -> str:
             f.write(content)
         return f"File created at {file_path}"
     except Exception as e:
-        return f"Error creating file: {str(e)}"
+        return f"[ERROR] Failed to create file: {str(e)}"
 
 
 @tool
