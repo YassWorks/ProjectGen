@@ -6,9 +6,6 @@ from app.src.config.ui import AgentUI
 from app.utils.ascii_art import ASCII_ART
 from app.utils.constants import CONSOLE_WIDTH
 from rich.console import Console
-import signal
-import time
-import sys
 import os
 
 
@@ -61,19 +58,13 @@ class CLI:
         self.codegen_system_prompt = codegen_system_prompt
         self.brainstormer_system_prompt = brainstormer_system_prompt
         self.web_searcher_system_prompt = web_searcher_system_prompt
-        
-        # utils
-        self._last_ctrl_c_time = time.time()
-        self._exit_time_interval = 3  # seconds
 
     def start_chat(self):
-        
+
         self.ui.logo(ASCII_ART)
         self.ui.help()
-        
+
         try:
-            signal.signal(signal.SIGINT, self._handle_ctrl_c)
-            
             active_dir = os.getcwd()
             self.ui.status_message(
                 title="Current Directory",
@@ -120,8 +111,10 @@ class CLI:
                 show_welcome=False,
                 working_dir=active_dir,
             )
-        except SystemExit:
-            pass
+        except KeyboardInterrupt:
+            self.ui.goodbye()
+        except Exception as e:
+            self.ui.error(error_msg=f"An unexpected error occurred: {e}")
 
     def _initialize_coding_agents(self):
         try:
@@ -161,15 +154,3 @@ class CLI:
             )
         except Exception as e:
             self.ui.error(error_msg=f"Failed to initialize code generation unit: {e}")
-
-    def _handle_ctrl_c(self, signum, frame):
-        now = time.time()
-        if now - self._last_ctrl_c_time < self._exit_time_interval:
-            self.ui.goodbye()
-            sys.exit(0)
-        else:
-            self._last_ctrl_c_time = now
-            self.ui.status_message(
-                title="Second Ctrl+C Pressed",
-                message="Press Ctrl+C again within 3 seconds to exit."
-            )
