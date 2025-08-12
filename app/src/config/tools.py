@@ -1,4 +1,4 @@
-from app.src.config.permissions import permission_manager
+from app.src.config.permissions import permission_manager, PermissionDeniedException
 from langchain_core.tools import tool
 import os
 import sys
@@ -35,8 +35,11 @@ def create_wd(path: str) -> str:
         create_wd("/home/user/workspace")     # Creates with absolute path
     """
     try:
-        os.makedirs(path, exist_ok=True)
-        return f"Working directory created at {path}"
+        if permission_manager.get_permission(tool_name="create_wd", path=path):
+            os.makedirs(path, exist_ok=True)
+            return f"Working directory created at {path}"
+        else:
+            raise PermissionDeniedException()
     except Exception as e:
         return f"[ERROR] Failed to create working directory: {str(e)}"
 

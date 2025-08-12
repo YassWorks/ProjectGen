@@ -1,4 +1,5 @@
 from app.utils.ascii_art import ASCII_ART
+from app.src.config.permissions import PermissionDeniedException
 from langchain_core.messages import AIMessage, ToolMessage, BaseMessage
 from langgraph.graph.state import CompiledStateGraph
 from typing import Union, Callable
@@ -163,6 +164,8 @@ class BaseAgent:
                 self.ui.session_interrupted()
                 self.ui.goodbye()
                 break
+            except PermissionDeniedException:
+                print("haha")
             except langgraph.errors.GraphRecursionError:
                 self.ui.recursion_warning()
                 if self.ui.confirm("Continue?", default=True):
