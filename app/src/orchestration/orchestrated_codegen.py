@@ -173,13 +173,13 @@ class CodeGenUnit:
                     config=configuration, show_welcome=False
                 )
 
-            if not exited_safely and not self.ui.confirm(
-                message="Brainstormer session did not exit safely. Do you want to continue to code generation anyway?",
-                default="y",
-            ):
-                self.ui.session_interrupted()
-                self.ui.goodbye()
-                return False
+                if not exited_safely and not self.ui.confirm(
+                    message="Brainstormer session did not exit safely. Do you want to continue to code generation anyway?",
+                    default="y",
+                ):
+                    self.ui.session_interrupted()
+                    self.ui.goodbye()
+                    return False
 
             ##################################### starting code generation #####################################
             self.ui.status_message(

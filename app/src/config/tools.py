@@ -1,6 +1,7 @@
 from app.src.config.permissions import permission_manager, PermissionDeniedException
 from langchain_core.tools import tool
 import os
+import shutil
 
 
 @tool
@@ -90,7 +91,7 @@ def create_file(file_path: str, content: str) -> str:
         if directory:
             os.makedirs(directory, exist_ok=True)
 
-        with open(file_path, "w") as f:
+        with open(file_path, "w", encoding="utf-8") as f:
             f.write(content)
         return f"File created at {file_path}"
     except Exception as e:
@@ -141,7 +142,7 @@ def modify_file(file_path: str, old_content: str, new_content: str) -> str:
         raise PermissionDeniedException()
     try:
 
-        with open(file_path, "r") as f:
+        with open(file_path, "r", encoding="utf-8") as f:
             contents = f.read()
 
         if old_content not in contents:
@@ -149,7 +150,7 @@ def modify_file(file_path: str, old_content: str, new_content: str) -> str:
 
         contents = contents.replace(old_content, new_content, 1)
 
-        with open(file_path, "w") as f:
+        with open(file_path, "w", encoding="utf-8") as f:
             f.write(contents)
         return f"File modified at {file_path}"
     except Exception as e:
@@ -202,7 +203,7 @@ def append_file(file_path: str, content: str) -> str:
         if directory:
             os.makedirs(directory, exist_ok=True)
 
-        with open(file_path, "a") as f:
+        with open(file_path, "a", encoding="utf-8") as f:
             f.write(content)
         return f"Content appended to {file_path}"
     except Exception as e:
@@ -299,9 +300,11 @@ def delete_directory(path: str) -> str:
     if not permission_manager.get_permission(tool_name="delete_directory", path=path):
         raise PermissionDeniedException()
     try:
-
-        os.rmdir(path)
-        return f"Directory deleted at {path}"
+        if os.path.exists(path):
+            shutil.rmtree(path)
+            return f"Directory deleted at {path}"
+        else:
+            return f"Directory does not exist: {path}"
     except Exception as e:
         return f"Error deleting directory: {str(e)}"
 
@@ -347,7 +350,7 @@ def read_file(file_path: str) -> str:
         raise PermissionDeniedException()
     try:
 
-        with open(file_path, "r") as f:
+        with open(file_path, "r", encoding="utf-8") as f:
             contents = f.read()
         return contents
     except Exception as e:

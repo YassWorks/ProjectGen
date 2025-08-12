@@ -9,7 +9,7 @@ def get_agent(
     system_prompt: str = None,
     extra_tools: list = None,
     temperature: float = 0,
-    include_graph: bool = False,
+    include_graph: bool = True,
 ):
     """Create a code generation agent with file and execution tools.
     
