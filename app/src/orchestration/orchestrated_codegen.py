@@ -1,7 +1,7 @@
-from app.src.agents.code_gen.code_gen import CodeGenAgent
-from app.src.agents.web_searcher.web_searcher import WebSearcherAgent
-from app.src.agents.brainstormer.brainstormer import BrainstormerAgent
 from app.src.orchestration.integrate_web_search import integrate_web_search
+from app.src.agents.brainstormer.brainstormer import BrainstormerAgent
+from app.src.agents.web_searcher.web_searcher import WebSearcherAgent
+from app.src.agents.code_gen.code_gen import CodeGenAgent
 from app.utils.constants import CONSOLE_WIDTH
 from app.utils.ascii_art import ASCII_ART
 from app.src.config.ui import AgentUI
@@ -91,7 +91,8 @@ class CodeGenUnit:
             context_engineering_steps = file.read()
 
         brainstormer_prompt = (
-            context_engineering_steps
+            f"\n\nIMPORTANT: Place your entire work inside {working_dir}\n\n"
+            + context_engineering_steps
             + "\n\n# User input:\n"
             + user_input
             + f"\n\nIMPORTANT: Place your entire work inside {working_dir}"
@@ -167,7 +168,8 @@ class CodeGenUnit:
             codegen_start = file.read()
 
         codegen_prompt = (
-            codegen_start
+            f"\n\nIMPORTANT: Place your entire work inside {working_dir}\n\n" 
+            + codegen_start
             + f"\n\nIMPORTANT: Place your entire work inside {working_dir}"
         )
 

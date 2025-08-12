@@ -11,7 +11,6 @@ from langchain_core.prompts import ChatPromptTemplate
 
 class State(TypedDict):
     """Common state structure for all agents."""
-
     messages: Annotated[list, add_messages]
 
 
@@ -62,7 +61,7 @@ def create_base_agent(
     def llm_node(state: State):
         return {"messages": [llm_chain.invoke({"messages": state["messages"]})]}
 
-    tool_node = ToolNode(tools=tools)
+    tool_node = ToolNode(tools=tools, handle_tool_errors=False)
 
     def forward(state: State):
         return {}

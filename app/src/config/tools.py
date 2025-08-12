@@ -1,7 +1,6 @@
 from app.src.config.permissions import permission_manager, PermissionDeniedException
 from langchain_core.tools import tool
 import os
-import sys
 
 
 @tool
@@ -34,14 +33,14 @@ def create_wd(path: str) -> str:
         create_wd("documents/reports")        # Creates nested structure
         create_wd("/home/user/workspace")     # Creates with absolute path
     """
+    if not permission_manager.get_permission(tool_name="create_wd", path=path):
+        raise PermissionDeniedException()
     try:
-        if permission_manager.get_permission(tool_name="create_wd", path=path):
-            os.makedirs(path, exist_ok=True)
-            return f"Working directory created at {path}"
-        else:
-            raise PermissionDeniedException()
+
+        os.makedirs(path, exist_ok=True)
+        return f"Working directory created at {path}"
     except Exception as e:
-        return f"[ERROR] Failed to create working directory: {str(e)}"
+        return f"Error creating working directory: {str(e)}"
 
 
 @tool
@@ -81,10 +80,14 @@ def create_file(file_path: str, content: str) -> str:
         create_file("config/settings.json", '{"theme": "dark"}')
         create_file("README.md", "# My Project\n\nDescription here")
     """
+    if not permission_manager.get_permission(
+        tool_name="create_file", file_path=file_path, content=content
+    ):
+        raise PermissionDeniedException()
     try:
-        # ensure the directory exists
+
         directory = os.path.dirname(file_path)
-        if directory:  # Only create directories if there's a directory component
+        if directory:
             os.makedirs(directory, exist_ok=True)
 
         with open(file_path, "w") as f:
@@ -129,7 +132,15 @@ def modify_file(file_path: str, old_content: str, new_content: str) -> str:
         modify_file("notes.txt", "Meeting at 2pm", "Meeting at 3pm")
         modify_file("config.json", '"theme": "light"', '"theme": "dark"')
     """
+    if not permission_manager.get_permission(
+        tool_name="modify_file",
+        file_path=file_path,
+        old_content=old_content,
+        new_content=new_content,
+    ):
+        raise PermissionDeniedException()
     try:
+
         with open(file_path, "r") as f:
             contents = f.read()
 
@@ -179,10 +190,16 @@ def append_file(file_path: str, content: str) -> str:
         append_file("data/records.csv", "id,name\n1,John Doe")
         append_file("notes.txt", "\n# Additional Notes\nContent here")
     """
+    if not permission_manager.get_permission(
+        tool_name="append_file",
+        file_path=file_path,
+        content=content,
+    ):
+        raise PermissionDeniedException()
     try:
-        # ensure the directory exists
+
         directory = os.path.dirname(file_path)
-        if directory:  # Only create directories if there's a directory component
+        if directory:
             os.makedirs(directory, exist_ok=True)
 
         with open(file_path, "a") as f:
@@ -230,7 +247,12 @@ def delete_file(file_path: str) -> str:
         delete_file("old_document.txt")      # Remove outdated file
         delete_file("/tmp/session.tmp")      # Clean cache file
     """
+    if not permission_manager.get_permission(
+        tool_name="delete_file", file_path=file_path
+    ):
+        raise PermissionDeniedException()
     try:
+
         os.remove(file_path)
         return f"File deleted at {file_path}"
     except Exception as e:
@@ -274,7 +296,10 @@ def delete_directory(path: str) -> str:
         delete_directory("projects/old_project")     # Remove old project folder
         delete_directory("/var/logs/old_logs")       # Clean up log directory
     """
+    if not permission_manager.get_permission(tool_name="delete_directory", path=path):
+        raise PermissionDeniedException()
     try:
+
         os.rmdir(path)
         return f"Directory deleted at {path}"
     except Exception as e:
@@ -316,7 +341,12 @@ def read_file(file_path: str) -> str:
         read_file("documents/notes.txt")     # Review document content
         read_file("/var/data/report.csv")    # Read data file
     """
+    if not permission_manager.get_permission(
+        tool_name="read_file", file_path=file_path
+    ):
+        raise PermissionDeniedException()
     try:
+
         with open(file_path, "r") as f:
             contents = f.read()
         return contents
@@ -339,7 +369,7 @@ def list_directory(path: str = ".") -> str:
     **BEHAVIOR**:
     - Recursively explores all subdirectories
     - Shows hierarchical structure with ASCII tree characters (├── └── │)
-    - Directories are marked with trailing "/" 
+    - Directories are marked with trailing "/"
     - Files and directories are sorted alphabetically within each level
     - Displays absolute path as header
 
@@ -367,85 +397,93 @@ def list_directory(path: str = ".") -> str:
         list_directory("documents")              # Explore documents/
         list_directory("/var/log")               # Show system log directory contents
     """
-
-    def _list_directory_recursive(current_path: str, current_depth: int = 0, is_last: bool = True, parent_prefix: str = "") -> list:
-        """Helper function to recursively build directory tree"""
-        items = []
-
-        try:
-            all_items = os.listdir(current_path)
-            dirs = []
-            files = []
-
-            for item in all_items:
-                item_path = os.path.join(current_path, item)
-                if os.path.isdir(item_path):
-                    dirs.append(item)
-                else:
-                    files.append(item)
-
-            # Sort files and directories
-            all_sorted = sorted(files) + sorted(dirs)
-            total_items = len(all_sorted)
-
-            for i, item_name in enumerate(all_sorted):
-                is_last_item = (i == total_items - 1)
-                item_path = os.path.join(current_path, item_name)
-                
-                # Determine the prefix for this item
-                if current_depth == 0:
-                    prefix = ""
-                else:
-                    if is_last_item:
-                        prefix = parent_prefix + "└── "
-                    else:
-                        prefix = parent_prefix + "├── "
-
-                # Add the item
-                if os.path.isdir(item_path):
-                    items.append(f"{prefix}{item_name}/")
-                    
-                    # Recursively process subdirectory
-                    if current_depth == 0:
-                        new_parent_prefix = "│   "
-                    else:
-                        if is_last_item:
-                            new_parent_prefix = parent_prefix + "    "
-                        else:
-                            new_parent_prefix = parent_prefix + "│   "
-                    
-                    sub_items = _list_directory_recursive(item_path, current_depth + 1, is_last_item, new_parent_prefix)
-                    items.extend(sub_items)
-                    
-                    # Add empty line after directory contents if not the last item
-                    if not is_last_item and sub_items:
-                        items.append(parent_prefix + "│")
-                else:
-                    items.append(f"{prefix}{item_name}")
-
-        except PermissionError:
-            if current_depth == 0:
-                items.append("❌ Permission denied")
-            else:
-                items.append(f"{parent_prefix}❌ Permission denied")
-        except Exception as e:
-            if current_depth == 0:
-                items.append(f"❌ Error: {str(e)}")
-            else:
-                items.append(f"{parent_prefix}❌ Error: {str(e)}")
-
-        return items
-
+    if not permission_manager.get_permission(tool_name="list_directory", path=path):
+        raise PermissionDeniedException()
     try:
         # Add header with path
         result = [f"{os.path.abspath(path)}/", "│"]
-        
+
         items = _list_directory_recursive(path)
         result.extend(items)
-        
+
         return "\n".join(result)
     except Exception as e:
         return f"Error listing directory: {str(e)}"
+
+
+def _list_directory_recursive(
+    current_path: str,
+    current_depth: int = 0,
+    parent_prefix: str = "",
+) -> list:
+    """Helper function to recursively build directory tree"""
+    items = []
+
+    try:
+        all_items = os.listdir(current_path)
+        dirs = []
+        files = []
+
+        for item in all_items:
+            item_path = os.path.join(current_path, item)
+            if os.path.isdir(item_path):
+                dirs.append(item)
+            else:
+                files.append(item)
+
+        # Sort files and directories
+        all_sorted = sorted(files) + sorted(dirs)
+        total_items = len(all_sorted)
+
+        for i, item_name in enumerate(all_sorted):
+            is_last_item = i == total_items - 1
+            item_path = os.path.join(current_path, item_name)
+
+            # Determine the prefix for this item
+            if current_depth == 0:
+                prefix = ""
+            else:
+                if is_last_item:
+                    prefix = parent_prefix + "└── "
+                else:
+                    prefix = parent_prefix + "├── "
+
+            # Add the item
+            if os.path.isdir(item_path):
+                items.append(f"{prefix}{item_name}/")
+
+                # Recursively process subdirectory
+                if current_depth == 0:
+                    new_parent_prefix = "│   "
+                else:
+                    if is_last_item:
+                        new_parent_prefix = parent_prefix + "    "
+                    else:
+                        new_parent_prefix = parent_prefix + "│   "
+
+                sub_items = _list_directory_recursive(
+                    item_path, current_depth + 1, is_last_item, new_parent_prefix
+                )
+                items.extend(sub_items)
+
+                # Add empty line after directory contents if not the last item
+                if not is_last_item and sub_items:
+                    items.append(parent_prefix + "│")
+            else:
+                items.append(f"{prefix}{item_name}")
+
+    except PermissionError:
+        if current_depth == 0:
+            items.append("❌ Permission denied")
+        else:
+            items.append(f"{parent_prefix}❌ Permission denied")
+    except Exception as e:
+        if current_depth == 0:
+            items.append(f"❌ Error: {str(e)}")
+        else:
+            items.append(f"{parent_prefix}❌ Error: {str(e)}")
+
+    return items
 
 
 FILE_TOOLS = [

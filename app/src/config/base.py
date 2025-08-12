@@ -164,12 +164,18 @@ class BaseAgent:
                 self.ui.session_interrupted()
                 self.ui.goodbye()
                 break
+
             except PermissionDeniedException:
-                print("haha")
+                self.console.print("[dim]\nTool call was blocked by the user. ⚠️\n[/dim]")
+                self.ui.session_interrupted()
+                self.ui.goodbye()
+                break
+
             except langgraph.errors.GraphRecursionError:
                 self.ui.recursion_warning()
                 if self.ui.confirm("Continue?", default=True):
                     continue_flag = True
+
             except openai.RateLimitError:
                 self.ui.status_message(
                     "⏳",
@@ -177,6 +183,7 @@ class BaseAgent:
                     message="Please try again later or switch to a different model.",
                     style="red",
                 )
+
             except Exception as e:
                 self.ui.error(str(e))
 
@@ -241,6 +248,15 @@ class BaseAgent:
                     {"messages": [("human", message)]},
                     config=configuration,
                 )
+                
+        except PermissionDeniedException:
+            msg = "[ERROR] The tool call was blocked by the user."
+            self.ui.status_message(
+                title="Permission Denied",
+                message=msg,
+            )
+            return msg
+
         except langgraph.errors.GraphRecursionError:
             msg = "[ERROR] The recursion limit has been exceeded. Please try a clearer input."
             if not quiet:
@@ -250,6 +266,7 @@ class BaseAgent:
                     style="red",
                 )
             return msg
+
         except openai.RateLimitError:
             msg = "[ERROR] Rate limit exceeded. Please try again later or switch to a different model."
             if not quiet:
@@ -259,6 +276,7 @@ class BaseAgent:
                     style="red",
                 )
             return msg
+
         except Exception as e:
             msg = f"[ERROR] Unexpected error occurred: {str(e)}"
             if not quiet:
@@ -282,7 +300,7 @@ class BaseAgent:
                 ret = ret[think_end + len("</think>") :].strip()
         else:
             if ret and ret[0] != "<":
-                ret = "<think>\n" + ret  # some models omit the "<think>" token
+                ret = "<think>\n" + ret  # some models omit the first "<think>" token
         return ret
 
     def _display_chunk(self, chunk: Union[BaseMessage, dict]):

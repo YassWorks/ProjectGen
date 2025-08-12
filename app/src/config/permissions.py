@@ -17,24 +17,23 @@ class PermissionManager:
         if tool_name in self.always_allowed_tools:
             return True
 
-        message = f"**Attempting to call '{tool_name}'**"
-        args = [f"{key}: \n\n```{value}```" for key, value in kwargs.items()]
+        message = f"[{self.ui._style("primary")}]Attempting to call [/{self.ui._style("primary")}]'{tool_name}'**"
+        self.ui.console.print(message)
+
+        tool_args = "**With arguments:**\n\n"
+        args = [f"```{key}```: \n\n```{value}```" for key, value in kwargs.items()]
         if args:
-            message += "\n\nWith arguments:\n" + "\n".join(args)
+            tool_args += "\n".join(args)
 
         try:
-            rendered_message = Markdown(message)
+            rendered_message = Markdown(tool_args)
         except:
-            rendered_message = message
+            rendered_message = tool_args
 
-        options = [
-            "Yes, allow once",
-            "No, deny access (exit now)",
-            f"Yes, always allow this tool ({tool_name}) to run",
-            "Yes, always allow all tools to run freely (USE AT YOUR OWN RISK)",
-        ]
+        self.ui.console.print(rendered_message)
 
-        idx = self.ui.select_option(message=rendered_message, options=options)
+        options = self._get_options(tool_name=tool_name)
+        idx = self.ui.select_option(message="", options=options)
 
         if idx == 0:
             return True
@@ -46,6 +45,14 @@ class PermissionManager:
         elif idx == 3:
             self.always_allow = True
             return True
+
+    def _get_options(self, tool_name: str) -> list[str]:
+        return [
+            "Yes, allow once",
+            "No, deny access (exit now)",
+            f"Yes, always allow this tool ({tool_name}) to run",
+            "Yes, always allow all tools to run freely (USE AT YOUR OWN RISK)",
+        ]
 
 
 class PermissionDeniedException(Exception): ...
