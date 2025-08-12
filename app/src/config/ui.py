@@ -9,14 +9,15 @@ from app.utils.constants import THEME
 import time
 import sys
 
-if os.name == "nt":  # Windows
+if os.name == "nt":
     import msvcrt
-else:  # Unix/Linux/macOS
+else:
     import tty
     import termios
 
 
 class AgentUI:
+
     def __init__(self, console: Console):
         self.console = console
 
@@ -43,13 +44,15 @@ class AgentUI:
         help_content.append("")
         help_content.append("Commands:")
         help_content.append("  /quit, /exit, /q  → Exit")
-        help_content.append("  /clear            → Clear history")
+        help_content.append("  /clear            → Clear history*")
         help_content.append("  /cls              → Clear screen")
 
         if model_name:
             help_content.append("")
             help_content.append(f"Model: [bold]{model_name}[/bold]")
-
+        
+        help_content.append("\n[italic][dim]((*Not recommended during long running tasks. Use at your own risk.)[/dim][/italic]")
+        
         panel = Panel(
             "\n".join(help_content),
             title="[bold]Help[/bold]",
@@ -194,35 +197,35 @@ class AgentUI:
             )
         except:
             return default
-        
+
     def get_key(self):
         """Read a single key press and return a string identifier."""
         if os.name == "nt":
             key = msvcrt.getch()
-            if key == b'\xe0':  # Special keys (arrows, F keys, etc.)
+            if key == b"\xe0":  # Special keys (arrows, F keys, etc.)
                 key = msvcrt.getch()
                 return {
-                    b'H': 'UP',
-                    b'P': 'DOWN',
+                    b"H": "UP",
+                    b"P": "DOWN",
                 }.get(key, None)
-            elif key in (b'\r', b'\n'):
-                return 'ENTER'
+            elif key in (b"\r", b"\n"):
+                return "ENTER"
         else:
             fd = sys.stdin.fileno()
             old_settings = termios.tcgetattr(fd)
             try:
                 tty.setraw(fd)
                 ch1 = sys.stdin.read(1)
-                if ch1 == '\x1b':  # Escape sequence
+                if ch1 == "\x1b":  # Escape sequence
                     ch2 = sys.stdin.read(1)
-                    if ch2 == '[':
+                    if ch2 == "[":
                         ch3 = sys.stdin.read(1)
                         return {
-                            'A': 'UP',
-                            'B': 'DOWN',
+                            "A": "UP",
+                            "B": "DOWN",
                         }.get(ch3, None)
-                elif ch1 in ('\r', '\n'):
-                    return 'ENTER'
+                elif ch1 in ("\r", "\n"):
+                    return "ENTER"
             finally:
                 termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
         return None
@@ -236,11 +239,11 @@ class AgentUI:
 
         while True:
             key = self.get_key()
-            if key == 'UP' and idx > 0:
+            if key == "UP" and idx > 0:
                 idx -= 1
-            elif key == 'DOWN' and idx < len(options) - 1:
+            elif key == "DOWN" and idx < len(options) - 1:
                 idx += 1
-            elif key == 'ENTER':
+            elif key == "ENTER":
                 return idx
 
             # Move cursor up to menu start
@@ -294,7 +297,7 @@ class AgentUI:
         self.console.print()
         self.status_message(
             title="Error",
-            message=f"{error_msg}\nPlease try again",
+            message=f"{error_msg}",
             emoji="❌",
             style="error",
         )

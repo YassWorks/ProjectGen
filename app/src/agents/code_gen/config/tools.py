@@ -1,5 +1,6 @@
 from langchain_core.tools import tool
 from app.src.config.tools import FILE_TOOLS
+from app.src.config.permissions import PermissionDeniedException, permission_manager
 import subprocess
 import tempfile
 import shlex
@@ -39,9 +40,9 @@ def execute_code(code: str) -> str:
         execute_code("print('Hello World')")
         execute_code("result = 2 + 2; print(f'Result: {result}')")
         execute_code("for i in range(3): print(i)")
-
-    **SECURITY NOTE**: This tool actively blocks malicious operations!
     """
+    if not permission_manager.get_permission(tool_name="execute_code", code=code):
+        raise PermissionDeniedException()
 
     dangerous_patterns = [
         r"rm\s+-rf\s+/",
@@ -68,7 +69,7 @@ def execute_code(code: str) -> str:
             cwd=os.getcwd(),
         )
 
-        os.unlink(tmp_file_path) # cleanup
+        os.unlink(tmp_file_path)  # cleanup
 
         output = ""
         if result.stdout:
@@ -79,7 +80,7 @@ def execute_code(code: str) -> str:
             output += f"\nReturn code: {result.returncode}"
 
         return output.strip() if output.strip() else "Code executed successfully"
-    
+
     except subprocess.TimeoutExpired:
         return "⏰ Code execution timed out (300 second limit exceeded)"
     except Exception as e:
@@ -100,7 +101,6 @@ def execute_command(command: str) -> str:
     **SECURITY RESTRICTIONS**:
     - TIMEOUT: Commands limited to 300 seconds maximum
     - EXTREME ONLY: Only blocks filesystem destruction and hardware access
-    - VIRTUAL ENV: Since you're in a VM, most operations are allowed
 
     **ALLOWED COMMANDS**:
     - Most system operations: rm, mv, cp, chmod, chown (use with caution)
@@ -131,9 +131,11 @@ def execute_command(command: str) -> str:
         execute_command("pip3 install requests")
         execute_command("curl https://api.github.com")
         execute_command("find . -name '*.txt'")
-
-    **CAUTION**: You're in a VM, but still be careful with destructive operations!
     """
+    if not permission_manager.get_permission(
+        tool_name="execute_command", command=command
+    ):
+        raise PermissionDeniedException()
 
     extremely_dangerous_commands = [
         r"^rm\s+-rf\s+/$",
@@ -180,14 +182,14 @@ def execute_command(command: str) -> str:
         )
 
     except subprocess.TimeoutExpired:
-        return "⏰ Command execution timed out (60 second limit exceeded)"
+        return "⏰ Command execution timed out (300 second limit exceeded)"
     except FileNotFoundError:
         return f"❌ Command not found: {parsed_command[0] if parsed_command else 'unknown'}"
     except PermissionError:
         return f"❌ Permission denied executing: {command}"
     except Exception as e:
         return f"❌ Execution error: {str(e)}"
-    
+
 
 EXECUTION_TOOLS = [
     execute_code,

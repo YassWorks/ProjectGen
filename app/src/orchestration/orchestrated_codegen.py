@@ -37,12 +37,22 @@ class CodeGenUnit:
 
     def _enhance_agents(self):
         """Integrate web search capabilities into brainstormer and code generation agents."""
-        integrate_web_search(
-            agent=self.code_gen_agent, web_searcher=self.web_searcher_agent
-        )
-        integrate_web_search(
-            agent=self.brainstormer_agent, web_searcher=self.web_searcher_agent
-        )
+        try:
+            integrate_web_search(
+                agent=self.code_gen_agent, web_searcher=self.web_searcher_agent
+            )
+        except Exception as e:
+            error_msg = f"Failed to integrate web search as a tool to the code generation agent: {e}"
+            self.ui.error(error_msg)
+            raise RuntimeError(error_msg)
+        try:
+            integrate_web_search(
+                agent=self.brainstormer_agent, web_searcher=self.web_searcher_agent
+            )
+        except Exception as e:
+            error_msg = f"Failed to integrate web search as a tool to the brainstormer agent: {e}"
+            self.ui.error(error_msg)
+            raise RuntimeError(error_msg)
 
     def run(
         self,
@@ -51,7 +61,7 @@ class CodeGenUnit:
         stream: bool = False,
         show_welcome: bool = True,
         working_dir: str = None,
-    ):
+    ) -> bool:
         """Start the interactive project generation workflow.
 
         Args:
@@ -61,159 +71,195 @@ class CodeGenUnit:
             show_welcome: Whether to show the welcome message
             working_dir: The working directory for the project
         """
-        self._enhance_agents()
 
-        if show_welcome:
-            self.ui.logo(ASCII_ART)
-            self.ui.help()
+        try:
+            self._enhance_agents()
 
-        while not working_dir:
-            try:
-                working_dir = self.ui.get_input(
-                    message="Enter project directory",
-                    default=os.getcwd(),
-                    cwd=os.getcwd(),
-                )
-                os.makedirs(working_dir, exist_ok=True)
-            except Exception:
-                self.ui.error("Failed to create project directory")
-                working_dir = None
+            if show_welcome:
+                self.ui.logo(ASCII_ART)
+                self.ui.help()
 
-        user_input = self.ui.get_input(
-            message="What would you like to build?",
-            cwd=working_dir,
-            model=getattr(self.code_gen_agent, "model_name", "AI"),
-        ).strip()
+            while not working_dir:
+                try:
+                    working_dir = self.ui.get_input(
+                        message="Enter project directory",
+                        default=os.getcwd(),
+                        cwd=os.getcwd(),
+                    )
+                    os.makedirs(working_dir, exist_ok=True)
+                except Exception:
+                    self.ui.error("Failed to create project directory")
+                    working_dir = None
 
-        prompts_dir = Path(__file__).resolve().parents[2]
-        ces_file_path = prompts_dir / "prompts" / "context_engineering_steps.txt"
-        with open(str(ces_file_path), "r") as file:
-            context_engineering_steps = file.read()
+            user_input = self.ui.get_input(
+                message="What would you like to build?",
+                cwd=working_dir,
+                model=getattr(self.code_gen_agent, "model_name", "AI"),
+            ).strip()
 
-        brainstormer_prompt = (
-            f"\n\nIMPORTANT: Place your entire work inside {working_dir}\n\n"
-            + context_engineering_steps
-            + "\n\n# User input:\n"
-            + user_input
-            + f"\n\nIMPORTANT: Place your entire work inside {working_dir}"
-        )
+            prompts_dir = Path(__file__).resolve().parents[2]
+            ces_file_path = prompts_dir / "prompts" / "context_engineering_steps.txt"
+            with open(str(ces_file_path), "r") as file:
+                context_engineering_steps = file.read()
 
-        configuration = (
-            {
-                "configurable": {"thread_id": "START"},
-                "recursion_limit": recursion_limit,
-            }
-            if config is None
-            else config
-        )
+            brainstormer_prompt = (
+                f"\n\nIMPORTANT: Place your entire work inside {working_dir}\n\n"
+                + context_engineering_steps
+                + "\n\n# User input:\n"
+                + user_input
+                + f"\n\nIMPORTANT: Place your entire work inside {working_dir}"
+            )
 
-        if not stream:
-            with self.console.status(
-                "[bold]Analyzing request...",
-                spinner="dots",
-            ):
+            configuration = (
+                {
+                    "configurable": {"thread_id": "START"},
+                    "recursion_limit": recursion_limit,
+                }
+                if config is None
+                else config
+            )
+
+            if not stream:
+                with self.console.status(
+                    "[bold]Performing brainstorming and generating the context space...",
+                    spinner="dots",
+                ):
+                    bs_results = self.brainstormer_agent.invoke(
+                        message=brainstormer_prompt,
+                        config=configuration,
+                        stream=stream,
+                        quiet=not stream,  # if the user doesn't want to see the steps, errors are useless too
+                    )
+            else:
                 bs_results = self.brainstormer_agent.invoke(
                     message=brainstormer_prompt,
                     config=configuration,
                     stream=stream,
-                    quiet=not stream,  # if the user doesn't want to see the steps, errors are useless too
+                    quiet=not stream,
                 )
-        else:
-            bs_results = self.brainstormer_agent.invoke(
-                message=brainstormer_prompt,
-                config=configuration,
-                stream=stream,
-                quiet=not stream,
+
+            if "[ERROR]" not in bs_results:
+                self.ui.status_message(
+                    title="Context Engineering Complete",
+                    message=f"Files generated at {working_dir}",
+                    emoji="📝",
+                    style="success",
+                )
+            else:
+                self.ui.error("Context engineering failed")
+                return False
+
+            if not stream:
+                self.ui.ai_response(bs_results)
+
+            usr_answer = self.ui.get_input(
+                message="Add more context before code generation?",
+                default="y",
+                choices=["y", "n"],
+                show_choices=True,
+                cwd=working_dir,
+                model=getattr(self.brainstormer_agent, "model_name", "Brainstormer"),
             )
 
-        self.ui.status_message(
-            title="Context Engineering Complete",
-            message=f"Files generated at {working_dir}",
-            emoji="📝",
-            style="success",
-        )
+            if usr_answer in ["yes", "y", "yeah"]:
+                self.ui.status_message(
+                    title="Brainstormer Ready",
+                    message="Type '/exit' or press Ctrl+C to continue to code generation",
+                    emoji="💭",
+                    style="accent",
+                )
 
-        if "[ERROR]" not in bs_results and not stream:
-            self.ui.ai_response(bs_results)
+                exited_safely = self.brainstormer_agent.start_chat(
+                    config=configuration, show_welcome=False
+                )
 
-        usr_answer = self.ui.get_input(
-            message="Add more context before code generation?",
-            default="y",
-            choices=["y", "n"],
-            show_choices=True,
-            cwd=working_dir,
-            model=getattr(self.brainstormer_agent, "model_name", "Brainstormer"),
-        )
-
-        if usr_answer in ["yes", "y", "yeah"]:
-            self.ui.status_message(
-                title="Brainstormer Ready",
-                message="Type '/exit' or Ctrl+C to continue to code generation",
-                emoji="💭",
-                style="accent",
-            )
-
-            self.brainstormer_agent.start_chat(config=configuration, show_welcome=False)
-
-        # Starting code generation
-        self.ui.status_message(
-            title="Starting code generation",
-            message="The CodeGen Agent is now generating code based on the context provided.",
-            emoji="🚀",
-            style="bold green",
-        )
-
-        codegen_file_path = prompts_dir / "prompts" / "codegen_start.txt"
-        with open(str(codegen_file_path), "r") as file:
-            codegen_start = file.read()
-
-        codegen_prompt = (
-            f"\n\nIMPORTANT: Place your entire work inside {working_dir}\n\n" 
-            + codegen_start
-            + f"\n\nIMPORTANT: Place your entire work inside {working_dir}"
-        )
-
-        # Overwriting the config so that the codegen agent doesn't get confused
-        # with the brainstormer's conversation
-        configuration = {
-            "configurable": {"thread_id": "START2"},
-            "recursion_limit": recursion_limit,
-        }
-
-        if not stream:
-            with self.console.status(
-                "[bold]Generating project...",
-                spinner="dots",
+            if not exited_safely and not self.ui.confirm(
+                message="Brainstormer session did not exit safely. Do you want to continue to code generation anyway?",
+                default="y",
             ):
+                self.ui.session_interrupted()
+                self.ui.goodbye()
+                return False
+
+            ##################################### starting code generation #####################################
+            self.ui.status_message(
+                title="Starting code generation",
+                message="The CodeGen Agent is now generating code based on the context provided.",
+                emoji="🚀",
+                style="bold green",
+            )
+
+            codegen_file_path = prompts_dir / "prompts" / "codegen_start.txt"
+            with open(str(codegen_file_path), "r") as file:
+                codegen_start = file.read()
+
+            codegen_prompt = (
+                f"\n\nIMPORTANT: Place your entire work inside {working_dir}\n\n"
+                + codegen_start
+                + f"\n\nIMPORTANT: Place your entire work inside {working_dir}"
+            )
+
+            # overwriting the config so that the codegen agent doesnt get confused
+            # with the brainstormer's conversation
+            configuration = {
+                "configurable": {"thread_id": "START2"},
+                "recursion_limit": recursion_limit,
+            }
+
+            if not stream:
+                with self.console.status(
+                    "[bold]Generating project. Please wait while the coding agent does all the work...",
+                    spinner="dots",
+                ):
+                    codegen_results = self.code_gen_agent.invoke(
+                        message=codegen_prompt,
+                        config=configuration,
+                        stream=stream,
+                        quiet=not stream,
+                    )
+            else:
                 codegen_results = self.code_gen_agent.invoke(
                     message=codegen_prompt,
                     config=configuration,
                     stream=stream,
                     quiet=not stream,
                 )
-        else:
-            codegen_results = self.code_gen_agent.invoke(
-                message=codegen_prompt,
-                config=configuration,
-                stream=stream,
-                quiet=not stream,
+
+            if "[ERROR]" not in codegen_results:
+                self.ui.status_message(
+                    title="Project Generation Complete",
+                    message=f"Code generated at {working_dir}",
+                    emoji="🎉",
+                    style="success",
+                )
+            else:
+                self.ui.error("Coding generation failed")
+                return False
+
+            if not stream:
+                self.ui.ai_response(codegen_results)
+
+            self.ui.status_message(
+                title="CodeGen Ready",
+                message="Starting interactive coding session with the coding agent...",
+                emoji="⚡",
+                style="accent",
             )
 
-        self.ui.status_message(
-            title="Project Generation Complete",
-            message=f"Code generated at {working_dir}",
-            emoji="🎉",
-            style="success",
-        )
+            exited_safely = self.code_gen_agent.start_chat(
+                config=configuration, show_welcome=False
+            )
 
-        if "[ERROR]" not in codegen_results:
-            self.ui.ai_response(codegen_results)
+            if not exited_safely:
+                self.ui.error("The interactive coding session did not exit safely")
+                return False
+            
+            return True
 
-        self.ui.status_message(
-            title="CodeGen Ready",
-            message="Starting interactive session...",
-            emoji="⚡",
-            style="accent",
-        )
+        except KeyboardInterrupt:
+            self.ui.session_interrupted()
+            return False
 
-        self.code_gen_agent.start_chat(config=configuration, show_welcome=False)
+        except Exception as e:
+            self.ui.error(f"An error occurred: {e}")
+            return False

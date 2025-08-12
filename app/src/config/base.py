@@ -54,13 +54,15 @@ class BaseAgent:
 
     def start_chat(
         self, recursion_limit: int = 100, config: dict = None, show_welcome: bool = True
-    ):
+    ) -> bool:
         """Start interactive chat session with the agent.
 
         Args:
             recursion_limit: Maximum recursion depth for agent operations
             config: Optional configuration dictionary
             show_welcome: Whether to display welcome message and logo
+        Returns:
+            bool: True if chat session exited successfully (no errors), False otherwise
         """
         if show_welcome:
             self.ui.logo(ASCII_ART)
@@ -99,7 +101,7 @@ class BaseAgent:
 
                 if user_input.lower() in ["/quit", "/exit", "/q"]:
                     self.ui.goodbye()
-                    break
+                    return True
 
                 if user_input.lower() == "/clear":
                     # new session
@@ -163,13 +165,13 @@ class BaseAgent:
             except KeyboardInterrupt:
                 self.ui.session_interrupted()
                 self.ui.goodbye()
-                break
+                return True
 
             except PermissionDeniedException:
                 self.console.print("[dim]\nTool call was blocked by the user. ⚠️\n[/dim]")
                 self.ui.session_interrupted()
                 self.ui.goodbye()
-                break
+                return False
 
             except langgraph.errors.GraphRecursionError:
                 self.ui.recursion_warning()
@@ -186,6 +188,7 @@ class BaseAgent:
 
             except Exception as e:
                 self.ui.error(str(e))
+                return False
 
     def invoke(
         self,
