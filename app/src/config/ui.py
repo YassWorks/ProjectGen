@@ -51,7 +51,7 @@ class AgentUI:
             help_content.append("")
             help_content.append(f"Model: [bold]{model_name}[/bold]")
         
-        help_content.append("\n[italic][dim]((*Not recommended during long running tasks. Use at your own risk.)[/dim][/italic]")
+        help_content.append("\n[italic][dim](*Not recommended during long running tasks. Use at your own risk.)[/dim][/italic]")
         
         panel = Panel(
             "\n".join(help_content),

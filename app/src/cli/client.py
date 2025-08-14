@@ -8,6 +8,7 @@ from app.utils.constants import CONSOLE_WIDTH
 from rich.console import Console
 import sys
 import os
+import textwrap
 
 
 class CLI:
@@ -82,36 +83,7 @@ class CLI:
         self.ui.help()
 
         try:
-            active_dir = os.getcwd()
-            self.ui.status_message(
-                title="Current Directory",
-                message=f"Working in {active_dir}",
-                emoji="📁",
-                style="primary",
-            )
-
-            if self.ui.confirm("Change working directory?", default=False):
-                working_dir = None
-                while not working_dir:
-                    try:
-                        working_dir = self.ui.get_input(
-                            message="Enter working directory",
-                            default=active_dir,
-                            cwd=active_dir,
-                        )
-                        os.makedirs(working_dir, exist_ok=True)
-
-                    except Exception:
-                        self.ui.error("Failed to create directory")
-                        working_dir = None
-
-                active_dir = working_dir
-                self.ui.status_message(
-                    title="Directory Updated",
-                    message=f"Now working in {active_dir}",
-                    emoji="📁",
-                    style="success",
-                )
+            active_dir = self._setup()
 
             if self.mode != "coding":
                 # handle non coding mode later
@@ -199,3 +171,75 @@ class CLI:
         except Exception as e:
             self.ui.error(error_msg=f"Failed to initialize code generation unit: {e}")
             raise RuntimeError(f"Failed to initialize code generation unit: {e}")
+
+    def _setup(self):
+        active_dir = os.getcwd()
+        self.ui.status_message(
+            title="Current Directory",
+            message=f"Working in {active_dir}",
+            emoji="📁",
+            style="primary",
+        )
+
+        if self.ui.confirm("Change working directory?", default=False):
+            working_dir = None
+            while not working_dir:
+                try:
+                    working_dir = self.ui.get_input(
+                        message="Enter working directory",
+                        default=active_dir,
+                        cwd=active_dir,
+                    )
+                    os.makedirs(working_dir, exist_ok=True)
+
+                except Exception:
+                    self.ui.error("Failed to create directory")
+                    working_dir = None
+
+            active_dir = working_dir
+            self.ui.status_message(
+                title="Directory Updated",
+                message=f"Now working in {active_dir}",
+                emoji="📁",
+                style="success",
+            )
+
+        models_msg = f"""
+            🧠 Brainstormer: [{self.ui._style("secondary")}]{self.brainstormer_model_name}[/{self.ui._style("secondary")}]
+            🔍 Web Searcher: [{self.ui._style("secondary")}]{self.web_searcher_model_name}[/{self.ui._style("secondary")}]
+            💻 Coding:       [{self.ui._style("secondary")}]{self.codegen_model_name}[/{self.ui._style("secondary")}]
+        """
+        models_msg = textwrap.dedent(models_msg)
+
+        self.ui.status_message(
+            title="Current models",
+            message=models_msg,
+            style="primary",
+        )
+
+        if self.ui.confirm(
+            "Do you wish to change any of the models used?", default=False
+        ):
+
+            if self.ui.confirm("Change Brainstormer LLM?", default=False):
+                new_model_name = self.ui.get_input(
+                    message="Enter new Brainstormer LLM model name",
+                    default=self.brainstormer_model_name,
+                )
+                self.brainstormer_model_name = new_model_name
+
+            if self.ui.confirm("Change Web Searcher LLM?", default=False):
+                new_model_name = self.ui.get_input(
+                    message="Enter new Web Searcher LLM model name",
+                    default=self.web_searcher_model_name,
+                )
+                self.web_searcher_model_name = new_model_name
+
+            if self.ui.confirm("Change Coding LLM?", default=False):
+                new_model_name = self.ui.get_input(
+                    message="Enter new Coding LLM model name",
+                    default=self.codegen_model_name,
+                )
+                self.codegen_model_name = new_model_name
+
+        return active_dir
