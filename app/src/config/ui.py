@@ -128,12 +128,11 @@ class AgentUI:
         self.console.print(panel)
 
     def status_message(
-        self, title: str, message: str, emoji: str = None, style: str = "primary"
+        self, title: str, message: str, style: str = "primary"
     ):
         self.console.print()
-        content = f"{emoji + '  ' if emoji else ''}{message}"
         panel = Panel(
-            content,
+            message,
             title=f"[bold]{title}[/bold]",
             border_style=self._style(style),
             padding=(0, 1),
@@ -154,7 +153,7 @@ class AgentUI:
         try:
             info_parts = []
             if cwd:
-                info_parts.append(f"[dim]📁 {os.path.basename(cwd)}[/dim]")
+                info_parts.append(f"[dim]📂 {os.path.basename(cwd)}[/dim]")
             if model:
                 info_parts.append(f"[dim]🤖 {model}[/dim]")
 
@@ -262,7 +261,6 @@ class AgentUI:
         self.status_message(
             title="Goodbye",
             message="Thanks for using the assistant!",
-            emoji="👋",
             style="primary",
         )
 
@@ -271,7 +269,6 @@ class AgentUI:
         self.status_message(
             title="History Cleared",
             message="Conversation history cleared",
-            emoji="✨",
             style="success",
         )
 
@@ -280,7 +277,6 @@ class AgentUI:
         self.status_message(
             title="Interrupted",
             message="Session interrupted by user",
-            emoji="⏹",
             style="warning",
         )
 
@@ -302,7 +298,6 @@ class AgentUI:
         self.status_message(
             title="Warning",
             message=f"{warning_msg}",
-            emoji="⚠️",
             style="warning",
         )
 
@@ -311,7 +306,6 @@ class AgentUI:
         self.status_message(
             title="Error",
             message=f"{error_msg}",
-            emoji="❌",
             style="error",
         )
 

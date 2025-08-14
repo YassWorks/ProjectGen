@@ -1,10 +1,8 @@
-from app.src.agents.brainstormer.brainstormer import BrainstormerAgent
-from app.src.agents.web_searcher.web_searcher import WebSearcherAgent
-from app.src.agents.code_gen.code_gen import CodeGenAgent
+from app.src.config.agent_factory import AgentFactory
 from app.src.orchestration.orchestrated_codegen import CodeGenUnit
 from app.src.config.ui import AgentUI
 from app.utils.ascii_art import ASCII_ART
-from app.utils.constants import CONSOLE_WIDTH
+from app.utils.constants import CONSOLE_WIDTH, UI_MESSAGES
 from rich.console import Console
 import sys
 import os
@@ -12,6 +10,7 @@ import textwrap
 
 
 class CLI:
+    """Command-line interface for the project generation system."""
 
     def __init__(
         self,
@@ -32,210 +31,219 @@ class CLI:
         brainstormer_system_prompt: str = None,
         web_searcher_system_prompt: str = None,
     ):
-        """
-        mode can be "coding" or "default" for now
-        """
-        # Validate required parameters for coding mode
-        if mode == "coding":
-            if not api_key and not all(
-                [codegen_api_key, brainstormer_api_key, web_searcher_api_key]
-            ):
-                raise ValueError(
-                    "API key must be provided either as 'api_key' or individual agent API keys"
-                )
-
-            if not all(
-                [codegen_model_name, brainstormer_model_name, web_searcher_model_name]
-            ):
-                raise ValueError(
-                    "Model names must be provided for all agents in coding mode"
-                )
-
         self.mode = mode
-        self.api_key = api_key
         self.stream = stream
         self.config = config
         self.console = Console(width=CONSOLE_WIDTH)
         self.ui = AgentUI(self.console)
 
-        # === coding mode config ===
-        self.codegen_model_name = codegen_model_name
-        self.brainstormer_model_name = brainstormer_model_name
-        self.web_searcher_model_name = web_searcher_model_name
+        if mode == "coding":
+            self._validate_coding_config(
+                api_key=api_key,
+                codegen_model=codegen_model_name,
+                brainstormer_model=brainstormer_model_name,
+                web_searcher_model=web_searcher_model_name,
+                codegen_api_key=codegen_api_key,
+                brainstormer_api_key=brainstormer_api_key,
+                web_searcher_api_key=web_searcher_api_key,
+            )
+            self._setup_coding_config(
+                api_key=api_key,
+                codegen_model=codegen_model_name,
+                brainstormer_model=brainstormer_model_name,
+                web_searcher_model=web_searcher_model_name,
+                codegen_api_key=codegen_api_key,
+                brainstormer_api_key=brainstormer_api_key,
+                web_searcher_api_key=web_searcher_api_key,
+                codegen_temp=codegen_temperature,
+                brainstormer_temp=brainstormer_temperature,
+                web_searcher_temp=web_searcher_temperature,
+                codegen_prompt=codegen_system_prompt,
+                brainstormer_prompt=brainstormer_system_prompt,
+                web_searcher_prompt=web_searcher_system_prompt,
+            )
 
-        # if the models stem from different inference providers
-        # or the user wants to customize his billing
-        self.codegen_api_key = codegen_api_key or api_key
-        self.brainstormer_api_key = brainstormer_api_key or api_key
-        self.web_searcher_api_key = web_searcher_api_key or api_key
+    def _validate_coding_config(
+        self,
+        api_key,
+        codegen_model,
+        brainstormer_model,
+        web_searcher_model,
+        codegen_api_key,
+        brainstormer_api_key,
+        web_searcher_api_key,
+    ):
+        """Validate required configuration for coding mode."""
+        if not api_key and not all(
+            [codegen_api_key, brainstormer_api_key, web_searcher_api_key]
+        ):
+            raise ValueError(
+                "API key must be provided either as 'api_key' or individual agent API keys"
+            )
 
-        self.codegen_temperature = codegen_temperature
-        self.brainstormer_temperature = brainstormer_temperature
-        self.web_searcher_temperature = web_searcher_temperature
+        if not all([codegen_model, brainstormer_model, web_searcher_model]):
+            raise ValueError(
+                "Model names must be provided for all agents in coding mode"
+            )
 
-        self.codegen_system_prompt = codegen_system_prompt
-        self.brainstormer_system_prompt = brainstormer_system_prompt
-        self.web_searcher_system_prompt = web_searcher_system_prompt
+    def _setup_coding_config(
+        self,
+        api_key,
+        codegen_model,
+        brainstormer_model,
+        web_searcher_model,
+        codegen_api_key,
+        brainstormer_api_key,
+        web_searcher_api_key,
+        codegen_temp,
+        brainstormer_temp,
+        web_searcher_temp,
+        codegen_prompt,
+        brainstormer_prompt,
+        web_searcher_prompt,
+    ):
+        """Setup configuration for coding mode."""
+        self.model_names = {
+            "code_gen": codegen_model,
+            "brainstormer": brainstormer_model,
+            "web_searcher": web_searcher_model,
+        }
+
+        self.api_keys = {
+            "code_gen": codegen_api_key or api_key,
+            "brainstormer": brainstormer_api_key or api_key,
+            "web_searcher": web_searcher_api_key or api_key,
+        }
+
+        self.temperatures = {
+            "code_gen": codegen_temp or 0,
+            "brainstormer": brainstormer_temp or 0.7,
+            "web_searcher": web_searcher_temp or 0,
+        }
+
+        self.system_prompts = {
+            "code_gen": codegen_prompt,
+            "brainstormer": brainstormer_prompt,
+            "web_searcher": web_searcher_prompt,
+        }
 
     def start_chat(self):
-
+        """Start the main chat interface."""
         self.ui.logo(ASCII_ART)
         self.ui.help()
 
         try:
-            active_dir = self._setup()
-            
+            active_dir = self._setup_environment()
+
             if self.mode != "coding":
-                # handle non coding mode later
                 return
 
-            self.ui.tmp_msg("\nInitializing agents...", duration=1)
+            self.ui.tmp_msg("Initializing agents...", duration=1)
+            success = self._run_coding_workflow(active_dir)
 
-            self._initialize_coding_agents()
-            self._initialize_units()
-
-            coding_generation_step_successful = self.codegen_unit.run(
-                config=self.config,
-                stream=self.stream,
-                show_welcome=False,
-                working_dir=active_dir,
-            )
-
-            if not coding_generation_step_successful:
+            if not success:
                 self.ui.error(
-                    "Code generation unit failed to complete task successfully. Exiting..."
+                    "Code generation workflow failed to complete successfully"
                 )
-                sys.exit(0)
+                sys.exit(1)
 
         except KeyboardInterrupt:
             self.ui.goodbye()
-
         except Exception as e:
-            self.ui.error(error_msg=f"An unexpected error occurred: {e}")
+            self.ui.error(f"An unexpected error occurred: {e}")
 
-    def _initialize_coding_agents(self):
-        self.codegen_agent = None
-        self.brainstormer_agent = None
-        self.web_searcher_agent = None
+    def _setup_environment(self) -> str:
+        """Setup working environment and configuration."""
+        active_dir = self._setup_directory()
 
-        try:
-            self.codegen_agent = CodeGenAgent(
-                model_name=self.codegen_model_name,
-                api_key=self.codegen_api_key,
-                system_prompt=self.codegen_system_prompt,
-                temperature=self.codegen_temperature,
-            )
-        except Exception as e:
-            self.ui.error(error_msg=f"Failed to initialize code generation agent: {e}")
-            raise RuntimeError(f"Critical agent initialization failed: {e}")
+        if self.mode == "coding":
+            self._display_model_config()
+            if self.ui.confirm(UI_MESSAGES["change_models"], default=False):
+                self._update_models()
 
-        try:
-            self.brainstormer_agent = BrainstormerAgent(
-                model_name=self.brainstormer_model_name,
-                api_key=self.brainstormer_api_key,
-                system_prompt=self.brainstormer_system_prompt,
-                temperature=self.brainstormer_temperature,
-            )
-        except Exception as e:
-            self.ui.error(error_msg=f"Failed to initialize brainstormer agent: {e}")
-            raise RuntimeError(f"Critical agent initialization failed: {e}")
+        return active_dir
 
-        try:
-            self.web_searcher_agent = WebSearcherAgent(
-                model_name=self.web_searcher_model_name,
-                api_key=self.web_searcher_api_key,
-                system_prompt=self.web_searcher_system_prompt,
-                temperature=self.web_searcher_temperature,
-            )
-        except Exception as e:
-            self.ui.error(error_msg=f"Failed to initialize web searcher agent: {e}")
-            raise RuntimeError(f"Critical agent initialization failed: {e}")
-
-    def _initialize_units(self):
-        # Validate that all required agents are initialized
-        if not all(
-            [self.codegen_agent, self.brainstormer_agent, self.web_searcher_agent]
-        ):
-            error_msg = (
-                "Cannot create CodeGenUnit: one or more agents failed to initialize"
-            )
-            self.ui.error(error_msg=error_msg)
-            raise RuntimeError(error_msg)
-
-        try:
-            self.codegen_unit = CodeGenUnit(
-                code_gen_agent=self.codegen_agent,
-                web_searcher_agent=self.web_searcher_agent,
-                brainstormer_agent=self.brainstormer_agent,
-            )
-        except Exception as e:
-            self.ui.error(error_msg=f"Failed to initialize code generation unit: {e}")
-            raise RuntimeError(f"Failed to initialize code generation unit: {e}")
-
-    def _setup(self):
+    def _setup_directory(self) -> str:
+        """Setup working directory with user interaction."""
         active_dir = os.getcwd()
         self.ui.status_message(
-            title="Current Directory",
+            title=UI_MESSAGES["titles"]["current_directory"],
             message=f"Working in {active_dir}",
-            emoji="📁",
             style="primary",
         )
 
-        if self.ui.confirm("Change working directory?", default=False):
-            working_dir = None
-            while not working_dir:
+        if self.ui.confirm(UI_MESSAGES["change_directory"], default=False):
+            while True:
                 try:
                     working_dir = self.ui.get_input(
-                        message="Enter working directory",
+                        message=UI_MESSAGES["directory_prompt"],
                         default=active_dir,
                         cwd=active_dir,
                     )
                     os.makedirs(working_dir, exist_ok=True)
-
+                    active_dir = working_dir
+                    break
                 except Exception:
                     self.ui.error("Failed to create directory")
-                    working_dir = None
 
-            active_dir = working_dir
             self.ui.status_message(
-                title="Directory Updated",
+                title=UI_MESSAGES["titles"]["directory_updated"],
                 message=f"Now working in {active_dir}",
-                emoji="📁",
                 style="success",
             )
 
+        return active_dir
+
+    def _display_model_config(self):
+        """Display current model configuration."""
         models_msg = f"""
-            🧠 Brainstormer: [{self.ui._style("secondary")}]{self.brainstormer_model_name}[/{self.ui._style("secondary")}]
-            🔍 Web Searcher: [{self.ui._style("secondary")}]{self.web_searcher_model_name}[/{self.ui._style("secondary")}]
-            💻 Coding:       [{self.ui._style("secondary")}]{self.codegen_model_name}[/{self.ui._style("secondary")}]
+            Brainstormer: [{self.ui._style("secondary")}]{self.model_names["brainstormer"]}[/{self.ui._style("secondary")}]
+            Web Searcher: [{self.ui._style("secondary")}]{self.model_names["web_searcher"]}[/{self.ui._style("secondary")}]
+            Coding:       [{self.ui._style("secondary")}]{self.model_names["code_gen"]}[/{self.ui._style("secondary")}]
         """
         models_msg = textwrap.dedent(models_msg)
 
         self.ui.status_message(
-            title="Current models",
+            title=UI_MESSAGES["titles"]["current_models"],
             message=models_msg,
             style="primary",
         )
 
-        if self.ui.confirm(
-            "Do you wish to change any of the models used?", default=False
-        ):
-            new_model_name = self.ui.get_input(
-                message="Enter new Brainstormer LLM model name",
-                default=self.brainstormer_model_name,
-            )
-            self.brainstormer_model_name = new_model_name
+    def _update_models(self):
+        """Update model configuration based on user input."""
+        agent_types = ["brainstormer", "web_searcher", "code_gen"]
+        display_names = ["Brainstormer", "Web Searcher", "Coding"]
 
-            new_model_name = self.ui.get_input(
-                message="Enter new Web Searcher LLM model name",
-                default=self.web_searcher_model_name,
+        for agent_type, display_name in zip(agent_types, display_names):
+            new_model = self.ui.get_input(
+                message=UI_MESSAGES["model_change_prompt"].format(display_name),
+                default=self.model_names[agent_type],
             )
-            self.web_searcher_model_name = new_model_name
+            self.model_names[agent_type] = new_model
 
-            new_model_name = self.ui.get_input(
-                message="Enter new Coding LLM model name",
-                default=self.codegen_model_name,
+    def _run_coding_workflow(self, working_dir: str) -> bool:
+        """Execute the coding workflow with proper error handling."""
+        try:
+            agents = AgentFactory.create_coding_agents(
+                model_names=self.model_names,
+                api_keys=self.api_keys,
+                temperatures=self.temperatures,
+                system_prompts=self.system_prompts,
             )
-            self.codegen_model_name = new_model_name
 
-        return active_dir
+            codegen_unit = CodeGenUnit(
+                code_gen_agent=agents["code_gen"],
+                web_searcher_agent=agents["web_searcher"],
+                brainstormer_agent=agents["brainstormer"],
+            )
+
+            return codegen_unit.run(
+                config=self.config,
+                stream=self.stream,
+                show_welcome=False,
+                working_dir=working_dir,
+            )
+
+        except Exception as e:
+            self.ui.error(f"Failed to initialize coding workflow: {e}")
+            return False
