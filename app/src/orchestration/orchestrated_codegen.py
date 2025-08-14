@@ -1,3 +1,4 @@
+from app.src.config.permissions import PermissionDeniedException
 from app.src.orchestration.integrate_web_search import integrate_web_search
 from app.src.agents.brainstormer.brainstormer import BrainstormerAgent
 from app.src.agents.web_searcher.web_searcher import WebSearcherAgent
@@ -7,6 +8,9 @@ from app.utils.ascii_art import ASCII_ART
 from app.src.config.ui import AgentUI
 from rich.console import Console
 from pathlib import Path
+import langgraph
+import openai
+import sys
 import os
 
 
@@ -34,25 +38,6 @@ class CodeGenUnit:
         self.brainstormer_agent = brainstormer_agent
         self.console = Console(width=CONSOLE_WIDTH)
         self.ui = AgentUI(self.console)
-
-    def _enhance_agents(self):
-        """Integrate web search capabilities into brainstormer and code generation agents."""
-        try:
-            integrate_web_search(
-                agent=self.code_gen_agent, web_searcher=self.web_searcher_agent
-            )
-        except Exception as e:
-            error_msg = f"Failed to integrate web search as a tool to the code generation agent: {e}"
-            self.ui.error(error_msg)
-            raise RuntimeError(error_msg)
-        try:
-            integrate_web_search(
-                agent=self.brainstormer_agent, web_searcher=self.web_searcher_agent
-            )
-        except Exception as e:
-            error_msg = f"Failed to integrate web search as a tool to the brainstormer agent: {e}"
-            self.ui.error(error_msg)
-            raise RuntimeError(error_msg)
 
     def run(
         self,
@@ -94,7 +79,6 @@ class CodeGenUnit:
             user_input = self.ui.get_input(
                 message="What would you like to build?",
                 cwd=working_dir,
-                model=getattr(self.code_gen_agent, "model_name", "AI"),
             ).strip()
 
             prompts_dir = Path(__file__).resolve().parents[2]
@@ -119,36 +103,58 @@ class CodeGenUnit:
                 else config
             )
 
-            if not stream:
-                with self.console.status(
-                    "[bold]Performing brainstorming and generating the context space...",
-                    spinner="dots",
-                ):
-                    bs_results = self.brainstormer_agent.invoke(
-                        message=brainstormer_prompt,
-                        config=configuration,
-                        stream=stream,
-                        quiet=not stream,  # if the user doesn't want to see the steps, errors are useless too
-                    )
-            else:
-                bs_results = self.brainstormer_agent.invoke(
-                    message=brainstormer_prompt,
-                    config=configuration,
-                    stream=stream,
-                    quiet=not stream,
-                )
+            continue_flag = True
+            while continue_flag:
+                try:
+                    if not stream:
+                        with self.console.status(
+                            "[bold]Performing brainstorming and generating the context space...",
+                            spinner="dots",
+                        ):
+                            bs_results = self.brainstormer_agent.invoke(
+                                message=brainstormer_prompt,
+                                config=configuration,
+                                stream=stream,
+                                quiet=not stream,  # if the user doesn't want to see the steps, errors are useless too
+                                propagate_exceptions=True,
+                            )
+                    else:
+                        bs_results = self.brainstormer_agent.invoke(
+                            message=brainstormer_prompt,
+                            config=configuration,
+                            stream=stream,
+                            quiet=not stream,
+                            propagate_exceptions=True,
+                        )
+                    continue_flag = False
+                
+                except PermissionDeniedException:
+                    self.ui.error("Permission denied")
+                    return False
 
-            if "[ERROR]" not in bs_results:
-                self.ui.status_message(
-                    title="Context Engineering Complete",
-                    message=f"Files generated at {working_dir}",
-                    emoji="📝",
-                    style="success",
-                )
-            else:
-                self.ui.error("Context engineering failed")
-                return False
+                except langgraph.errors.GraphRecursionError:
+                    brainstormer_prompt = "Continue where you left. Don't repeat anything already done."
+                    self.ui.recursion_warning()
+                    if not self.ui.confirm("Continue?", default=True):
+                        continue_flag = False
+                        self.ui.session_interrupted()
+                        sys.exit(0)
+                
+                except openai.RateLimitError:
+                    self.ui.error("Rate limit exceeded")
+                    return False
+                
+                except Exception as e:
+                    self.ui.error(f"An unexpected error occurred: {e}")
+                    return False
 
+            self.ui.status_message(
+                title="Context Engineering Complete",
+                message=f"Files generated at {working_dir}",
+                emoji="📝",
+                style="success",
+            )
+            
             if not stream:
                 self.ui.ai_response(bs_results)
 
@@ -206,35 +212,57 @@ class CodeGenUnit:
                 "recursion_limit": recursion_limit,
             }
 
-            if not stream:
-                with self.console.status(
-                    "[bold]Generating project. Please wait while the coding agent does all the work...",
-                    spinner="dots",
-                ):
-                    codegen_results = self.code_gen_agent.invoke(
-                        message=codegen_prompt,
-                        config=configuration,
-                        stream=stream,
-                        quiet=not stream,
-                    )
-            else:
-                codegen_results = self.code_gen_agent.invoke(
-                    message=codegen_prompt,
-                    config=configuration,
-                    stream=stream,
-                    quiet=not stream,
-                )
+            continue_flag = True
+            while continue_flag:
+                try:
+                    if not stream:
+                        with self.console.status(
+                            "[bold]Generating project. Please wait while the coding agent does all the work...",
+                            spinner="dots",
+                        ):
+                            codegen_results = self.code_gen_agent.invoke(
+                                message=codegen_prompt,
+                                config=configuration,
+                                stream=stream,
+                                quiet=not stream,
+                                propagate_exceptions=True,
+                            )
+                    else:
+                        codegen_results = self.code_gen_agent.invoke(
+                            message=codegen_prompt,
+                            config=configuration,
+                            stream=stream,
+                            quiet=not stream,
+                            propagate_exceptions=True,
+                        )
+                    continue_flag = False
+                
+                except PermissionDeniedException:
+                    self.ui.error("Permission denied")
+                    return False
 
-            if "[ERROR]" not in codegen_results:
-                self.ui.status_message(
-                    title="Project Generation Complete",
-                    message=f"Code generated at {working_dir}",
-                    emoji="🎉",
-                    style="success",
-                )
-            else:
-                self.ui.error("Coding generation failed")
-                return False
+                except langgraph.errors.GraphRecursionError:
+                    codegen_prompt = "Continue where you left. Don't repeat anything already done."
+                    self.ui.recursion_warning()
+                    if not self.ui.confirm("Continue?", default=True):
+                        continue_flag = False
+                        self.ui.session_interrupted()
+                        sys.exit(0)
+                
+                except openai.RateLimitError:
+                    self.ui.error("Rate limit exceeded")
+                    return False
+                
+                except Exception as e:
+                    self.ui.error(f"An unexpected error occurred: {e}")
+                    return False
+
+            self.ui.status_message(
+                title="Project Generation Complete",
+                message=f"Code generated at {working_dir}",
+                emoji="🎉",
+                style="success",
+            )
 
             if not stream:
                 self.ui.ai_response(codegen_results)
@@ -253,13 +281,32 @@ class CodeGenUnit:
             if not exited_safely:
                 self.ui.error("The interactive coding session did not exit safely")
                 return False
-            
+
             return True
 
         except KeyboardInterrupt:
             self.ui.session_interrupted()
-            return False
+            return True
 
         except Exception as e:
             self.ui.error(f"An error occurred: {e}")
             return False
+
+    def _enhance_agents(self):
+        """Integrate web search capabilities into brainstormer and code generation agents."""
+        try:
+            integrate_web_search(
+                agent=self.code_gen_agent, web_searcher=self.web_searcher_agent
+            )
+        except Exception as e:
+            error_msg = f"Failed to integrate web search as a tool to the code generation agent: {e}"
+            self.ui.error(error_msg)
+            raise RuntimeError(error_msg)
+        try:
+            integrate_web_search(
+                agent=self.brainstormer_agent, web_searcher=self.web_searcher_agent
+            )
+        except Exception as e:
+            error_msg = f"Failed to integrate web search as a tool to the brainstormer agent: {e}"
+            self.ui.error(error_msg)
+            raise RuntimeError(error_msg)

@@ -131,7 +131,7 @@ class AgentUI:
         self, title: str, message: str, emoji: str = None, style: str = "primary"
     ):
         self.console.print()
-        content = f"{emoji + ' ' if emoji else ''}{message}"
+        content = f"{emoji + '  ' if emoji else ''}{message}"
         panel = Panel(
             content,
             title=f"[bold]{title}[/bold]",
@@ -195,9 +195,13 @@ class AgentUI:
             return Confirm.ask(
                 ">>", default=default, console=self.console, show_default=False
             )
-        except:
+        except KeyboardInterrupt:
+            self.session_interrupted()
+            sys.exit(0)
+        except Exception:
+            self.warning(f"Failed to confirm action. Continuing with default value ({'y' if default else 'n'})")
             return default
-
+            
     def get_key(self):
         """Read a single key press and return a string identifier."""
         if os.name == "nt":
@@ -275,8 +279,8 @@ class AgentUI:
         self.console.print()
         self.status_message(
             title="Interrupted",
-            message="Session stopped by user",
-            emoji="⏹️",
+            message="Session interrupted by user",
+            emoji="⏹",
             style="warning",
         )
 
@@ -292,6 +296,15 @@ class AgentUI:
             padding=(1, 2),
         )
         self.console.print(panel)
+
+    def warning(self, warning_msg: str):
+        self.console.print()
+        self.status_message(
+            title="Warning",
+            message=f"{warning_msg}",
+            emoji="⚠️",
+            style="warning",
+        )
 
     def error(self, error_msg: str):
         self.console.print()

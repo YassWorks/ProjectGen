@@ -200,6 +200,7 @@ class BaseAgent:
         stream: bool = False,
         intermediary_chunks: bool = False,
         quiet: bool = False,
+        propagate_exceptions: bool = False,
     ):
         """Invoke agent with a message and return response.
 
@@ -253,6 +254,8 @@ class BaseAgent:
                 )
                 
         except PermissionDeniedException:
+            if propagate_exceptions:
+                raise PermissionDeniedException()
             msg = "[ERROR] The tool call was blocked by the user."
             self.ui.status_message(
                 title="Permission Denied",
@@ -261,6 +264,8 @@ class BaseAgent:
             return msg
 
         except langgraph.errors.GraphRecursionError:
+            if propagate_exceptions:
+                raise langgraph.errors.GraphRecursionError()
             msg = "[ERROR] The recursion limit has been exceeded. Please try a clearer input."
             if not quiet:
                 self.ui.status_message(
@@ -271,6 +276,8 @@ class BaseAgent:
             return msg
 
         except openai.RateLimitError:
+            if propagate_exceptions:
+                raise openai.RateLimitError()
             msg = "[ERROR] Rate limit exceeded. Please try again later or switch to a different model."
             if not quiet:
                 self.ui.status_message(
@@ -281,6 +288,8 @@ class BaseAgent:
             return msg
 
         except Exception as e:
+            if propagate_exceptions:
+                raise Exception("Unexpected error occurred")
             msg = f"[ERROR] Unexpected error occurred: {str(e)}"
             if not quiet:
                 self.ui.error(msg)

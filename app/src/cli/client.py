@@ -84,24 +84,24 @@ class CLI:
 
         try:
             active_dir = self._setup()
-
+            
             if self.mode != "coding":
                 # handle non coding mode later
                 return
 
-            self.ui.tmp_msg("Initializing agents...", duration=1)
+            self.ui.tmp_msg("\nInitializing agents...", duration=1)
 
             self._initialize_coding_agents()
             self._initialize_units()
 
-            coding_generation_successful = self.codegen_unit.run(
+            coding_generation_step_successful = self.codegen_unit.run(
                 config=self.config,
                 stream=self.stream,
                 show_welcome=False,
                 working_dir=active_dir,
             )
 
-            if not coding_generation_successful:
+            if not coding_generation_step_successful:
                 self.ui.error(
                     "Code generation unit failed to complete task successfully. Exiting..."
                 )
@@ -220,26 +220,22 @@ class CLI:
         if self.ui.confirm(
             "Do you wish to change any of the models used?", default=False
         ):
+            new_model_name = self.ui.get_input(
+                message="Enter new Brainstormer LLM model name",
+                default=self.brainstormer_model_name,
+            )
+            self.brainstormer_model_name = new_model_name
 
-            if self.ui.confirm("Change Brainstormer LLM?", default=False):
-                new_model_name = self.ui.get_input(
-                    message="Enter new Brainstormer LLM model name",
-                    default=self.brainstormer_model_name,
-                )
-                self.brainstormer_model_name = new_model_name
+            new_model_name = self.ui.get_input(
+                message="Enter new Web Searcher LLM model name",
+                default=self.web_searcher_model_name,
+            )
+            self.web_searcher_model_name = new_model_name
 
-            if self.ui.confirm("Change Web Searcher LLM?", default=False):
-                new_model_name = self.ui.get_input(
-                    message="Enter new Web Searcher LLM model name",
-                    default=self.web_searcher_model_name,
-                )
-                self.web_searcher_model_name = new_model_name
-
-            if self.ui.confirm("Change Coding LLM?", default=False):
-                new_model_name = self.ui.get_input(
-                    message="Enter new Coding LLM model name",
-                    default=self.codegen_model_name,
-                )
-                self.codegen_model_name = new_model_name
+            new_model_name = self.ui.get_input(
+                message="Enter new Coding LLM model name",
+                default=self.codegen_model_name,
+            )
+            self.codegen_model_name = new_model_name
 
         return active_dir
