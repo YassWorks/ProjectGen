@@ -35,7 +35,7 @@ class AgentUI:
 
             color = f"#{red:02x}{green:02x}{blue:02x}"
             text = Text(line, style=f"bold {color}")
-            self.console.print(text, justify="center")
+            self.console.print(text)
 
     def help(self, model_name: str = None):
         self.console.print()

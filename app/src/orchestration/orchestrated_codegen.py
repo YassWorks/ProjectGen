@@ -4,8 +4,6 @@ from app.src.orchestration.integrate_web_search import integrate_web_search
 from app.utils.constants import UI_MESSAGES
 from app.utils.ascii_art import ASCII_ART
 from pathlib import Path
-import sys
-import os
 
 
 class CodeGenUnit(BaseUnit):

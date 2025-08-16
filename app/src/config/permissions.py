@@ -1,7 +1,6 @@
 from app.src.config.ui import AgentUI
 from app.utils.constants import CONSOLE_WIDTH
 from rich.console import Console
-from rich.markdown import Markdown
 
 
 class PermissionManager:
@@ -19,23 +18,6 @@ class PermissionManager:
 
         message = f"\n[{self.ui._style("primary")}]Attempting to call [/{self.ui._style("primary")}]'{tool_name}'"
         self.ui.console.print(message)
-
-        # def shrink(value: str) -> str:
-        #     if len(value) > 1000:
-        #         return value[:1000] + "... (truncated)"
-        #     return value
-
-        # tool_args = "\n**With arguments:**\n\n"
-        # args = [f"***{key}***: \n\n```{shrink(value)}```\n\n" for key, value in kwargs.items()]
-        # if args:
-        #     tool_args += "\n".join(args)
-
-        # try:
-        #     rendered_message = Markdown(tool_args)
-        # except:
-        #     rendered_message = tool_args
-
-        # self.ui.console.print(rendered_message)
 
         options = self._get_options(tool_name=tool_name)
         idx = self.ui.select_option(message="", options=options)
